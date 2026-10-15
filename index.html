@@ -1136,10 +1136,20 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     if (j.stop_reason === "refusal") throw { code: "refused" };
     return (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
   }
+  // Abort a request that hangs on a weak mobile connection; keeps the caller's own abort working too.
+  function withTimeout(signal, ms) {
+    const c = new AbortController();
+    const t = setTimeout(() => { c.timedOut = true; c.abort(); }, ms);
+    if (signal) { if (signal.aborted) c.abort(); else signal.addEventListener("abort", () => c.abort(), { once: true }); }
+    return { signal: c.signal, ctrl: c, done: () => clearTimeout(t) };
+  }
   const aiClient = {
     async json(prompt, opts = {}) {
       const cfg = aiCfg();
       if (!cfg.key) throw { code: "no_key" };
+      if (navigator.onLine === false) throw { code: "offline" };
+      const tm = withTimeout(opts.signal, opts.audio ? 60000 : 40000);
+      opts = { ...opts, signal: tm.signal };
       const heavy = opts.modelTier === "complex";
       try {
         if (cfg.provider === "claude") {
@@ -1161,10 +1171,10 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
         }
         throw last;
       } catch (e) {
-        if (e && e.name === "AbortError") throw { code: "cancelled" };
-        if (e instanceof TypeError) throw { code: "network" };
+        if (e && e.name === "AbortError") throw { code: tm.ctrl.timedOut ? "timeout" : "cancelled" };
+        if (e instanceof TypeError) throw { code: navigator.onLine === false ? "offline" : "network" };
         throw e;
-      }
+      } finally { tm.done(); }
     }
   };
   async function getSample() { return aiCfg().key ? aiClient : null; }
@@ -1176,7 +1186,9 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     if (code === "bad_model") return "找不到这个模型。去「⚙️ AI 设置」把模型那一栏清空，用默认的。";
     if (code === "billing") return "AI 账户余额不足，需要去充值。";
     if (code === "rate_limited") return "这一分钟的免费额度用完了，等一分钟再发。";
-    if (code === "network") return "连不上 AI 服务，检查一下网络。";
+    if (code === "offline") return "手机现在没有网络。用流量的话，检查「设置 → 蜂窝网络」里 Safari 的开关有没有打开。";
+    if (code === "timeout") return "网络太慢，AI 一直没回来。换个信号好的地方再试，或者先用打字。";
+    if (code === "network") return "连不上 AI 服务。用流量的话，检查「设置 → 蜂窝网络」里 Safari 的开关有没有打开；开着 VPN 的话可以关掉再试。";
     if (code === "audio_unsupported") return "Claude 不能直接听录音。请在「⚙︎ 对话设置」里把语音识别换成「手机自带识别」。";
     if (code === "no_speech") return "没听清你说了什么，再说一次试试。";
     if (code === "overloaded") return "Google 的免费模型现在太忙了，过几秒再试一次。";
@@ -1927,6 +1939,11 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
   });
   renderAiSettings();
   if (!aiCfg().key) $("ai-settings").open = true;
+
+  // Cache the app itself so it still opens on a weak or missing connection.
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  window.addEventListener("offline", () => notice("手机断网了，恢复网络后才能继续和对方聊。"));
+  window.addEventListener("online", () => notice(""));
 
   // ---------- Boot ----------
   setPhase("setup");
