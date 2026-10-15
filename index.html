@@ -55,6 +55,36 @@ img { max-width: 100%; }
 .mic { border: 0; border-radius: 999px; padding: 12px 22px; font-size: 1.05rem; font-weight: 700; background: var(--accent); color: var(--accent-ink); }
 .mic.live { background: var(--bad); color: #fff; }
 @media (prefers-reduced-motion: no-preference) { .mic.live { animation: pulse 1.2s ease-in-out infinite; } @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgb(178 59 59 / 0.18); } } }
+.chat-tools { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tool { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 12px; font-size: 0.84rem; color: var(--fg); }
+.compose-row { display: flex; gap: 8px; align-items: flex-end; }
+.compose-row textarea { flex: 1; min-width: 0; min-height: 46px; max-height: 120px; }
+.compose-row .mic { width: 58px; height: 58px; padding: 0; font-size: 1.5rem; flex: none; }
+.compose-row .send { flex: none; height: 46px; }
+.mic-status { font-size: 0.82rem; color: var(--muted); min-height: 1.2em; }
+.mic-status.live { color: var(--bad); font-weight: 500; }
+#quick { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+#quick button { flex: none; }
+.raw-note { font-size: 0.74rem; color: var(--muted); padding: 0 4px; text-align: right; }
+.sheet-backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / 0.38); z-index: 40; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 720px; max-height: 84dvh; background: var(--surface); color: var(--fg); border-radius: 16px 16px 0 0; z-index: 41; display: grid; grid-template-rows: auto minmax(0, 1fr); padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -6px 24px rgb(0 0 0 / 0.18); }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 16px 24px; display: grid; gap: 10px; align-content: start; }
+.sheet-body .persona-card { background: transparent; padding: 0; }
+.past-item { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 2px; }
+.past-item small { color: var(--muted); }
+#chat-settings { display: grid; gap: 12px; }
+@media (max-width: 860px) {
+  body.in-chat #setup, body.in-chat header.top .sub { display: none; }
+  body.in-chat header.top { margin-bottom: 8px; }
+  body.in-chat header.top h1 { font-size: 1.15rem; }
+  body.in-chat .wrap { padding-block: 8px 0; }
+  body.in-chat .chat { height: calc(100dvh - 76px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height: 360px; max-height: none; }
+  .chat-head { padding: 10px 12px; gap: 6px 10px; }
+  .msgs { padding: 12px; }
+  .compose { padding: 10px 12px; }
+  .msg, .turn { max-width: 90%; }
+}
 .settings > div { margin-top: 10px; display: grid; gap: 10px; }
 .howto { font-size: 0.86rem; background: var(--sunk); border-radius: 8px; padding: 8px 12px; }
 .howto ol { margin: 4px 0 0; padding-left: 1.3em; display: grid; gap: 2px; }
@@ -359,11 +389,14 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
             <div class="who-text"><strong id="who-name">—</strong><small id="who-role">—</small></div>
           </div>
           <div class="row">
-            <span class="meter" id="meter" hidden title="对方此刻有多投入，会随你的每句话变化"><span>对方投入度</span><span class="bar"><i id="meter-fill" style="width:50%"></i></span><span class="delta" id="meter-delta"></span></span>
-            <label class="toggle"><input type="checkbox" id="notes-toggle" checked> 实时旁注</label>
-            <label class="toggle" id="tts-wrap"><input type="checkbox" id="tts-toggle" checked> 🔊 朗读</label>
             <span class="clock" id="clock">00:00</span>
             <button class="btn" id="btn-end" hidden>结束并点评</button>
+          </div>
+          <div class="chat-tools">
+            <button class="tool" type="button" id="btn-sheet-profile">👤 资料卡</button>
+            <button class="tool" type="button" id="btn-sheet-history">📜 之前的练习</button>
+            <button class="tool" type="button" id="btn-sheet-settings">⚙︎ 对话设置</button>
+            <span class="meter" id="meter" hidden title="对方此刻有多投入，会随你的每句话变化"><span>投入度</span><span class="bar"><i id="meter-fill" style="width:50%"></i></span><span class="delta" id="meter-delta"></span></span>
           </div>
         </div>
         <div class="msgs" id="msgs" aria-live="polite"></div>
@@ -374,18 +407,13 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
             <span class="hint">对方先打招呼，你用英文回应。</span>
           </div>
           <div id="input-area" hidden>
-            <div class="mic-row">
-              <button class="mic" type="button" id="btn-mic">🎤 按一下开始说</button>
-              <label class="toggle"><input type="checkbox" id="call-toggle"> 通话模式：停顿就自动发送，对方说完自动接着听</label>
-            </div>
-            <label for="input" class="label">你说的话会显示在这里，发送前可以改</label>
-            <textarea id="input" placeholder="Hi! Thanks so much for making the time...（动作可以写在括号里，比如 (laughs)）"></textarea>
             <div class="quick" id="quick" aria-label="小反应"></div>
-            <div class="row">
-              <span class="hint" id="dictation-hint">🎤 用说的：点手机键盘上的麦克风键 · Enter 发送</span>
-              <label class="toggle"><input type="checkbox" id="autosend-toggle"> 停顿 2.5 秒自动发送</label>
-              <button class="btn primary" id="btn-send">发送</button>
+            <div class="compose-row">
+              <button class="mic" type="button" id="btn-mic" aria-label="开始说话">🎤</button>
+              <textarea id="input" rows="1" aria-label="你的回复" placeholder="按 🎤 说话，或在这里打字"></textarea>
+              <button class="btn primary send" id="btn-send">发送</button>
             </div>
+            <div class="mic-status" id="mic-status">按 🎤 开始说，说完再按一下就发出去</div>
           </div>
           <div id="after-area" class="row" hidden>
             <button class="btn primary" id="btn-again">再练一次</button>
@@ -397,6 +425,24 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
   </section>
 
   <!-- HISTORY -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+    <div class="sheet-head"><strong id="sheet-title"></strong><button class="btn" type="button" id="sheet-close">关闭</button></div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+  <div id="sheet-store" hidden>
+    <div id="chat-settings">
+      <label class="field"><span>语音识别方式</span>
+        <select id="stt-mode"><option value="ai">AI 识别：更准，会结合上下文（需要用 Gemini）</option><option value="device">手机自带识别：更快</option></select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="call-toggle"> 通话模式：你一停顿就自动发送，对方说完自动接着听</label>
+      <label class="toggle"><input type="checkbox" id="notes-toggle" checked> 实时旁注：解释你和对方的小反应</label>
+      <label class="toggle" id="tts-wrap"><input type="checkbox" id="tts-toggle" checked> 🔊 朗读对方的话</label>
+      <label class="toggle"><input type="checkbox" id="autosend-toggle"> 打字或用键盘听写时，停顿 2.5 秒自动发送</label>
+      <p class="hint" id="dictation-hint"></p>
+    </div>
+  </div>
+
   <section id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
     <div class="row" style="margin-bottom:12px">
       <button class="btn" type="button" id="btn-export">导出记录备份</button>
@@ -1010,6 +1056,9 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
 
   function setPhase(phase) {
     state.phase = phase;
+    const wasIn = document.body.classList.contains("in-chat");
+    document.body.classList.toggle("in-chat", phase === "chat" || phase === "review" || phase === "done");
+    if (!wasIn && document.body.classList.contains("in-chat")) try { window.scrollTo(0, 0); } catch {}
     $("start-area").hidden = phase !== "setup";
     $("input-area").hidden = phase !== "chat";
     $("after-area").hidden = phase !== "done";
@@ -1064,11 +1113,11 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     else if (res.status === 402 || /credit|billing|balance/i.test(msg)) code = "billing";
     return { code, message: msg, status: res.status };
   }
-  async function callGemini(cfg, prompt, signal, model) {
+  async function callGemini(cfg, prompt, signal, model, audio) {
     const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
       method: "POST", signal,
       headers: { "content-type": "application/json", "x-goog-api-key": cfg.key },
-      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.9 } })
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }].concat(audio ? [{ inlineData: { mimeType: audio.mime, data: audio.data } }] : []) }], generationConfig: { responseMimeType: "application/json", temperature: 0.9 } })
     });
     if (!res.ok) throw await httpErr(res);
     const j = await res.json();
@@ -1094,6 +1143,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
       const heavy = opts.modelTier === "complex";
       try {
         if (cfg.provider === "claude") {
+          if (opts.audio) throw { code: "audio_unsupported" };
           return extractJSON(await callClaude(cfg, prompt + "\n\nReply with the JSON object only.", opts.signal, cfg.model || AI_DEFAULTS.claude, heavy ? "medium" : "low"));
         }
         // Free models are often busy: retry once, then move on to the next model.
@@ -1101,7 +1151,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
         const retryable = ["bad_model", "overloaded", "empty_completion", "invalid_json"];
         let last;
         for (const m of models) {
-          try { return extractJSON(await callGemini(cfg, prompt, opts.signal, m)); }
+          try { return extractJSON(await callGemini(cfg, prompt, opts.signal, m, opts.audio)); }
           catch (e) {
             last = e;
             if (e && e.name === "AbortError") throw e;
@@ -1127,6 +1177,8 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     if (code === "billing") return "AI 账户余额不足，需要去充值。";
     if (code === "rate_limited") return "这一分钟的免费额度用完了，等一分钟再发。";
     if (code === "network") return "连不上 AI 服务，检查一下网络。";
+    if (code === "audio_unsupported") return "Claude 不能直接听录音。请在「⚙︎ 对话设置」里把语音识别换成「手机自带识别」。";
+    if (code === "no_speech") return "没听清你说了什么，再说一次试试。";
     if (code === "overloaded") return "Google 的免费模型现在太忙了，过几秒再试一次。";
     if (code === "region") return "你现在所在的国家或地区不能用 Gemini 免费 API（" + (e.message || "") + "）。";
     if (code === "refused") return "AI 没有回答这一句，换个说法再试试。";
@@ -1145,7 +1197,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     }).join("\n");
   }
 
-  function replyPrompt() {
+  function replyPrompt(voice) {
     const p = state.persona, d = state.diff;
     const elapsed = Math.round((Date.now() - state.startedAt) / 60000);
     return [
@@ -1173,8 +1225,12 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
       "CONVERSATION SO FAR:",
       transcriptText(state.turns, "Job seeker", p.name, true),
       "",
+      voice === "ai" ? "THE JOB SEEKER'S LATEST LINE IS IN THE ATTACHED AUDIO (English, possibly with a Chinese accent). In \"heard\", write down exactly what they said, word for word, as natural written English with punctuation. Use the conversation so far to pick between words that sound alike (names, places, job terms). Do NOT fix their grammar or make it sound better; keep their real wording (you may drop fillers like um/uh). If you can't hear any speech, set \"heard\" to an empty string. Then reply to what they said." :
+      voice === "device" ? "THE JOB SEEKER'S LATEST LINE CAME FROM PHONE SPEECH RECOGNITION and may contain misheard words (sound-alike words, wrong names, missing words). In \"heard\", write what they most likely actually said, fixing ONLY recognition errors using the conversation context. Do NOT fix their grammar or improve their English. If it already looks right, copy it exactly. Reply to what they meant." :
+      "Set \"heard\" to an empty string.",
+      "",
       "Return only a JSON object:",
-      '{"action": "your small visible reaction in English as you start speaking, a few words, e.g. \\"laughs\\", \\"nods slowly\\", \\"glances at phone\\", \\"leans in\\"; empty string if nothing notable", "speech": "what you say out loud (may be very short, e.g. \\"Ha, yeah.\\")", "engagement": integer 0-100, "reactionNote": "简体中文一句（不超过40字）：站在旁观教练角度，解释你这个反应和投入度变化背后的原因", "userNote": "简体中文一句（不超过40字）：点出求职者上一句里的一个细节（语气、措辞、时机、长短、肢体动作）做得好或不好；没有值得说的就空字符串"}'
+      '{"heard": "see the instruction above", "action": "your small visible reaction in English as you start speaking, a few words, e.g. \\"laughs\\", \\"nods slowly\\", \\"glances at phone\\", \\"leans in\\"; empty string if nothing notable", "speech": "what you say out loud (may be very short, e.g. \\"Ha, yeah.\\")", "engagement": integer 0-100, "reactionNote": "简体中文一句（不超过40字）：站在旁观教练角度，解释你这个反应和投入度变化背后的原因", "userNote": "简体中文一句（不超过40字）：点出求职者上一句里的一个细节（语气、措辞、时机、长短、肢体动作）做得好或不好；没有值得说的就空字符串"}'
     ].join("\n");
   }
 
@@ -1223,6 +1279,11 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     g.appendChild(b); m.appendChild(g); m.scrollTop = m.scrollHeight;
     return g;
   }
+  function updateMe(g, turn) {
+    const b = g.querySelector(".msg"); b.textContent = turn.t; b.classList.remove("typing");
+    if (turn.raw && turn.raw !== turn.t) g.appendChild(el("span", "raw-note", "按语境修正了识别，原文：" + turn.raw));
+    $("msgs").scrollTop = $("msgs").scrollHeight;
+  }
 
   // ---------- Read replies aloud (speechSynthesis; no microphone needed) ----------
   const tts = { ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" };
@@ -1259,7 +1320,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     const ua = navigator.userAgent || "";
     const hint = /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "🎤 用说的：按两下 Fn 键（或 🌐 键）开始听写，说完点发送或按 Enter"
       : /Windows/.test(ua) ? "🎤 用说的：按 Win + H 开始语音输入，说完点发送或按 Enter"
-      : "也可以用打字或键盘上的麦克风键 · Enter 发送";
+      : "也可以打字，或用键盘上的麦克风键";
     $("dictation-hint").textContent = hint;
     const auto = $("autosend-toggle");
     auto.checked = store.get("cc.autosend") === "on";
@@ -1309,7 +1370,13 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
   // ---------- Microphone: speech recognition in the browser ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const mic = { rec: null, on: false, base: "", wantSend: false, silence: null };
-  function setMicUI() { const b = $("btn-mic"); b.classList.toggle("live", mic.on); b.textContent = mic.on ? "⏹ 说完了，按一下发送" : "🎤 按一下开始说"; }
+  function setMicStatus(t, live) { const n = $("mic-status"); n.textContent = t || ""; n.classList.toggle("live", !!live); }
+  function setMicUI() {
+    const on = mic.on || audio.on, b = $("btn-mic");
+    b.classList.toggle("live", on); b.textContent = on ? "⏹" : "🎤"; b.setAttribute("aria-label", on ? "说完了，发送" : "开始说话");
+    if (on) setMicStatus($("call-toggle").checked ? "正在听…停顿一下就会自动发送" : "正在听…说完再按一下 ⏹ 发送", true);
+    else if (!state.busy) setMicStatus("");
+  }
   function startMic() {
     if (!SR) { notice("这个浏览器不支持语音识别。iPhone 请用 Safari 打开，或者用键盘上的麦克风键。"); return; }
     if (mic.on || state.busy || state.phase !== "chat") return;
@@ -1322,6 +1389,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
       let fin = "", interim = "";
       for (let i = 0; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t + " "; else interim += t; }
       $("input").value = [mic.base, fin, interim].join(" ").replace(/\s+/g, " ").trim();
+      state.voiceInput = true;
       clearTimeout(mic.silence);
       if ($("call-toggle").checked) mic.silence = setTimeout(() => stopMic(true), 1800);
     };
@@ -1344,27 +1412,111 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     mic.wantSend = !!sendAfter;
     try { mic.rec.stop(); } catch { mic.on = false; setMicUI(); if (sendAfter) send(); }
   }
-  $("btn-mic").addEventListener("click", () => (mic.on ? stopMic(true) : startMic()));
+  // ---------- AI speech recognition: record audio, let Gemini transcribe it with context ----------
+  const audio = { on: false, stream: null, mr: null, chunks: [], ctx: null, raf: 0, heard: false, lastLoud: 0, started: 0, send: false };
+  const useAiStt = () => aiCfg().provider === "gemini" && (store.get("cc.stt") || "ai") === "ai" && !!window.MediaRecorder && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  async function startAudio() {
+    if (audio.on || state.busy || state.phase !== "chat") return;
+    try { speechSynthesis.cancel(); } catch {}
+    $("input").readOnly = false;
+    try { audio.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+    catch { notice("没有麦克风权限。iPhone：设置 → App → Safari → 麦克风，选允许，然后刷新页面。"); return; }
+    const mime = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+    try { audio.mr = new MediaRecorder(audio.stream, mime ? { mimeType: mime } : undefined); }
+    catch { audio.stream.getTracks().forEach((t) => t.stop()); notice("这个浏览器不能录音，请在「⚙︎ 对话设置」里换成「手机自带识别」。"); return; }
+    audio.chunks = []; audio.send = false; audio.heard = false;
+    audio.mr.ondataavailable = (e) => { if (e.data && e.data.size) audio.chunks.push(e.data); };
+    audio.mr.onstop = onAudioStop;
+    audio.mr.start(250);
+    audio.on = true; audio.started = audio.lastLoud = Date.now();
+    setMicUI();
+    // Silence detection, for call mode and as a safety stop.
+    try {
+      audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = audio.ctx.createAnalyser(); an.fftSize = 1024;
+      audio.ctx.createMediaStreamSource(audio.stream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      const loop = () => {
+        if (!audio.on) return;
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        if (Math.sqrt(sum / buf.length) > 0.015) { audio.heard = true; audio.lastLoud = Date.now(); }
+        const quiet = Date.now() - audio.lastLoud;
+        if (($("call-toggle").checked && audio.heard && quiet > 1600) || Date.now() - audio.started > 90000) { stopAudio(true); return; }
+        audio.raf = requestAnimationFrame(loop);
+      };
+      loop();
+    } catch {}
+  }
+  function stopAudio(sendAfter) {
+    if (!audio.on) return;
+    audio.on = false; audio.send = !!sendAfter;
+    cancelAnimationFrame(audio.raf);
+    try { audio.mr.stop(); } catch {}
+    try { audio.stream.getTracks().forEach((t) => t.stop()); } catch {}
+    setMicUI();
+  }
+  async function onAudioStop() {
+    const ctx = audio.ctx; audio.ctx = null;
+    const close = () => { try { ctx && ctx.close(); } catch {} };
+    if (!audio.send || !audio.chunks.length) { close(); return; }
+    if (Date.now() - audio.started < 500) { close(); setMicStatus("太短了，按住多说一点再发"); return; }
+    setMicStatus("正在处理录音…");
+    try {
+      const blob = new Blob(audio.chunks, { type: (audio.mr && audio.mr.mimeType) || "audio/mp4" });
+      const b64 = await toWav16kBase64(blob, ctx || new (window.AudioContext || window.webkitAudioContext)());
+      close();
+      send(null, b64);
+    } catch { close(); setMicStatus(""); notice("这段录音没处理成功，再说一次，或在「⚙︎ 对话设置」里换成「手机自带识别」。"); }
+  }
+  async function toWav16kBase64(blob, ctx) {
+    const ab = await blob.arrayBuffer();
+    const decoded = await new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+    const rate = 16000, len = Math.max(1, Math.ceil(decoded.duration * rate));
+    const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const off = new Off(1, len, rate);
+    const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start(0);
+    const out = await new Promise((res, rej) => { off.oncomplete = (e) => res(e.renderedBuffer); const p = off.startRendering(); if (p && p.then) p.then(res, rej); });
+    const pcm = out.getChannelData(0);
+    const view = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, "RIFF"); view.setUint32(4, 36 + pcm.length * 2, true); str(8, "WAVE"); str(12, "fmt ");
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true);
+    view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); str(36, "data"); view.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i++) { const v = Math.max(-1, Math.min(1, pcm[i])); view.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true); }
+    const bytes = new Uint8Array(view.buffer); let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function startListening() { if (useAiStt()) startAudio(); else startMic(); }
+  $("btn-mic").addEventListener("click", () => { if (audio.on) stopAudio(true); else if (mic.on) stopMic(true); else startListening(); });
+  $("stt-mode").value = store.get("cc.stt") || "ai";
+  $("stt-mode").addEventListener("change", () => store.set("cc.stt", $("stt-mode").value));
   $("call-toggle").checked = store.get("cc.call") === "on";
   $("call-toggle").addEventListener("change", () => store.set("cc.call", $("call-toggle").checked ? "on" : "off"));
   function listenAgainIfCallMode() {
     if (!$("call-toggle").checked || state.phase !== "chat") return;
     let speaking = false; try { speaking = speechSynthesis.speaking || speechSynthesis.pending; } catch {}
-    if (speaking && $("tts-toggle").checked) tts.after = () => setTimeout(startMic, 300);
-    else setTimeout(startMic, 300);
+    if (speaking && $("tts-toggle").checked) tts.after = () => setTimeout(startListening, 300);
+    else setTimeout(startListening, 300);
   }
 
-  async function send(forced) {
+  async function send(forced, audioB64) {
     const ta = $("input");
-    const text = (forced || ta.value).trim();
-    if (!text || state.busy) return;
+    const text = audioB64 ? "" : (forced || ta.value).trim();
+    if ((!text && !audioB64) || state.busy) return;
     const sample = await getSample();
-    if (!sample) { notice("还没设置 AI。请先在左边「⚙️ AI 设置」里填好 API key。"); return; }
-    if (!forced) ta.value = "";
-    notice("");
+    if (!sample) { notice("还没设置 AI。请先在「⚙️ AI 设置」里填好 API key。"); return; }
+    const voice = audioB64 ? "ai" : (!forced && state.voiceInput ? "device" : "");
+    state.voiceInput = false;
+    if (!forced && !audioB64) ta.value = "";
+    notice(""); setMicStatus("");
     const lat = Math.round((Date.now() - state.lastThemAt) / 1000);
-    state.turns.push({ r: "me", t: text, lat });
-    const meNode = addMe(text);
+    const meTurn = { r: "me", t: audioB64 ? "[the job seeker's latest line is in the attached audio]" : text, lat };
+    if (voice) meTurn.voice = voice;
+    state.turns.push(meTurn);
+    const meNode = addMe(audioB64 ? "🎤 识别中…" : text);
+    if (audioB64) meNode.querySelector(".msg").classList.add("typing");
     state.busy = true; $("btn-send").disabled = true;
     const m = $("msgs");
     const typing = el("div", "msg them typing"); typing.append(document.createTextNode(state.persona.name + " "), el("span", "dots"));
@@ -1372,8 +1524,12 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     state.ctrl = new AbortController();
     try {
       let r;
-      try { r = await sample.json(replyPrompt(), { cache: false, modelTier: "default", signal: state.ctrl.signal }); }
-      catch (e) { if (e && e.code === "invalid_json" && e.text) r = { speech: e.text.replace(/[{}"]/g, "").trim() }; else throw e; }
+      try { r = await sample.json(replyPrompt(voice), { cache: false, modelTier: "default", signal: state.ctrl.signal, audio: audioB64 ? { mime: "audio/wav", data: audioB64 } : null }); }
+      catch (e) { if (e && e.code === "invalid_json" && e.text && !audioB64) r = { speech: e.text.replace(/[{}"]/g, "").trim() }; else throw e; }
+      const heard = String(r.heard || "").trim();
+      if (audioB64) { if (!heard) throw { code: "no_speech" }; meTurn.t = heard; }
+      else if (voice && heard && heard.toLowerCase() !== text.toLowerCase()) { meTurn.raw = text; meTurn.t = heard; }
+      updateMe(meNode, meTurn);
       const prev = state.engagement;
       const eng = Number.isFinite(Number(r.engagement)) ? Math.max(0, Math.min(100, Math.round(Number(r.engagement)))) : prev;
       const turn = { r: "them", t: String(r.speech || "…").trim(), a: String(r.action || "").trim().replace(/^\(|\)$/g, ""), e: eng, n: String(r.reactionNote || "").trim(), u: String(r.userNote || "").trim() };
@@ -1386,10 +1542,11 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     } catch (e) {
       typing.remove(); meNode.remove();
       state.turns.pop(); // let them resend
-      if (!forced) ta.value = text;
+      if (!forced && !audioB64) ta.value = text;
       const msg = errText(e); if (msg) notice(msg);
     } finally {
-      state.busy = false; $("btn-send").disabled = false; ta.focus();
+      state.busy = false; $("btn-send").disabled = false;
+      if (!matchMedia("(pointer: coarse)").matches) ta.focus(); // don't pop the phone keyboard every turn
     }
   }
 
@@ -1551,6 +1708,8 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
 
   $("btn-end").addEventListener("click", async () => {
     if (mic.on) { mic.wantSend = false; mic.on = false; try { mic.rec.abort(); } catch {} setMicUI(); }
+    if (audio.on) stopAudio(false);
+    closeSheet();
     tts.after = null; try { speechSynthesis.cancel(); } catch {}
     if (state.busy) state.ctrl?.abort();
     clearInterval(state.timer);
@@ -1691,6 +1850,59 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     });
     tr.appendChild(box); d.appendChild(tr);
   }
+
+  // ---------- Bottom sheet (works mid-chat without leaving the conversation) ----------
+  const sheet = { moved: null, home: null, next: null };
+  function openSheet(title, fill) {
+    closeSheet();
+    $("sheet-title").textContent = title;
+    const body = $("sheet-body"); body.replaceChildren();
+    fill(body);
+    $("sheet").hidden = false; $("sheet-backdrop").hidden = false;
+  }
+  function borrow(node, body) { sheet.moved = node; sheet.home = node.parentNode; sheet.next = node.nextSibling; body.appendChild(node); }
+  function closeSheet() {
+    if (sheet.moved) { sheet.home.insertBefore(sheet.moved, sheet.next); sheet.moved = null; }
+    $("sheet").hidden = true; $("sheet-backdrop").hidden = true;
+  }
+  $("sheet-close").addEventListener("click", closeSheet);
+  $("sheet-backdrop").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
+  $("btn-sheet-profile").addEventListener("click", () => openSheet("对方的资料卡", (b) => borrow($("persona-card"), b)));
+  $("btn-sheet-settings").addEventListener("click", () => openSheet("对话设置", (b) => borrow($("chat-settings"), b)));
+  function pastList(body) {
+    body.replaceChildren();
+    const items = rec.items || [];
+    if (!items.length) { body.appendChild(el("p", "muted", "还没有之前的练习。完成一次后，这里可以随时翻看。")); return; }
+    const name = cur && cur.name;
+    const same = items.filter((i) => i.personaName === name), others = items.filter((i) => i.personaName !== name);
+    const group = (label, arr) => {
+      if (!arr.length) return;
+      body.appendChild(el("span", "label", label));
+      arr.slice(0, 30).forEach((it) => {
+        const b = el("button", "past-item"); b.type = "button";
+        b.append(el("strong", null, (it.personaFull || it.personaName) + " · " + it.personaTitle), el("small", null, fmtDate(it.createdAt) + " · " + (it.difficultyZh || "") + " · " + (typeof it.score === "number" ? it.score + " 分" : "未评分")));
+        b.addEventListener("click", () => pastDetail(body, it));
+        body.appendChild(b);
+      });
+    };
+    group("和 " + name + " 的练习", same);
+    group(same.length ? "其他练习" : "所有练习", others);
+  }
+  function pastDetail(body, it) {
+    body.replaceChildren();
+    const back = el("button", "btn", "← 返回列表"); back.type = "button"; back.style.justifySelf = "start";
+    back.addEventListener("click", () => pastList(body));
+    body.append(back, el("strong", null, (it.personaFull || it.personaName) + " · " + fmtDate(it.createdAt)));
+    if (it.feedback && it.feedback.tips && it.feedback.tips.length) {
+      const box = el("div", "howto"); box.append(el("b", null, "那次点评说下次最该改的："));
+      const ul = el("ul"); it.feedback.tips.forEach((t) => ul.appendChild(el("li", null, t))); box.appendChild(ul); body.appendChild(box);
+    }
+    const tr = el("div", "transcript"); tr.style.maxHeight = "none";
+    (it.turns || []).forEach((t) => { const p = el("p"); p.append(el("b", null, t.r === "me" ? "YOU" : (it.personaName || "THEM").toUpperCase()), document.createTextNode((t.a ? "(" + t.a + ") " : "") + t.t)); tr.appendChild(p); });
+    body.appendChild(tr);
+  }
+  $("btn-sheet-history").addEventListener("click", () => openSheet("之前的练习", pastList));
 
   // ---------- AI settings ----------
   function renderAiSettings() {
