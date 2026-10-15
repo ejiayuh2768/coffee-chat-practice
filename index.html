@@ -12,8 +12,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!-- Loaded without blocking the page: where Google Fonts is unreachable the system fonts are used. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
 <style>
 /* Layout: one working surface. Setup and prep notes on the left, the conversation on the right; history as its own tab. */
 :root {
@@ -278,7 +278,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
           <summary>⚙️ AI 设置 <span class="chip" id="ai-status"></span></summary>
           <div>
             <label class="field"><span>用哪个 AI</span>
-              <select id="ai-provider"><option value="gemini">Google Gemini（有免费额度）</option><option value="claude">Claude（效果最好，按用量付费）</option></select>
+              <select id="ai-provider"><option value="gemini">Google Gemini（有免费额度）</option><option value="claude">Claude（效果最好，按用量付费）</option><option value="zhipu">智谱 GLM（国内可用，免费）</option><option value="deepseek">DeepSeek（国内可用，很便宜）</option></select>
             </label>
             <label class="field"><span>API key（只保存在这台设备上）</span>
               <input type="password" id="ai-key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴你的 API key">
@@ -292,6 +292,14 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
             <div class="row"><button class="btn primary" type="button" id="ai-save">保存并测试</button><span class="hint" id="ai-msg"></span></div>
             <div class="howto" id="howto-gemini">怎么拿到免费的 Gemini API key：
               <ol><li>打开 <b>aistudio.google.com</b>，用 Google 账号登录</li><li>点「Get API key」，再点「Create API key」</li><li>复制那串以 AIza 开头的字</li><li>回来粘贴到上面，点「保存并测试」</li></ol>
+            </div>
+            <div class="howto" id="howto-zhipu" hidden>怎么拿到免费的智谱 API key（国内可用）：
+              <ol><li>打开 <b>bigmodel.cn</b>（智谱开放平台），用手机号注册登录，按提示完成实名认证</li><li>点右上角头像 →「API Keys」→「添加新的 API Key」</li><li>复制那串 key，回来粘贴到上面，点「保存并测试」</li></ol>
+              默认用免费的 GLM-4-Flash。用智谱时语音识别会用手机自带识别，AI 再按上下文修正。
+            </div>
+            <div class="howto" id="howto-deepseek" hidden>怎么拿到 DeepSeek API key（国内可用，需要先充值几块钱）：
+              <ol><li>打开 <b>platform.deepseek.com</b>，用手机号注册登录</li><li>在「充值」里充一点钱</li><li>在「API keys」里点「创建 API key」，复制以 sk- 开头的字</li><li>回来粘贴到上面，点「保存并测试」</li></ol>
+              用 DeepSeek 时语音识别会用手机自带识别，AI 再按上下文修正。
             </div>
             <div class="howto" id="howto-claude" hidden>怎么拿到 Claude API key：
               <ol><li>打开 <b>console.anthropic.com</b>，注册并登录</li><li>在 Billing 里绑卡、充一点钱（和 Claude 订阅分开计费）</li><li>在 API Keys 里点「Create Key」，复制以 sk-ant- 开头的字</li><li>回来粘贴到上面，点「保存并测试」</li></ol>
@@ -1092,7 +1100,23 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
 
   // ---------- Claude ----------
   // ---------- AI provider (your own API key, stored only on this device) ----------
-  const AI_DEFAULTS = { gemini: "gemini-flash-latest", claude: "claude-opus-5-5" };
+  const AI_DEFAULTS = { gemini: "gemini-flash-latest", claude: "claude-opus-5-5", zhipu: "glm-4-flash-250414", deepseek: "deepseek-chat" };
+  // OpenAI-compatible providers reachable from mainland China. Models are tried in order if one is unavailable.
+  const COMPAT = {
+    zhipu: { url: "https://open.bigmodel.cn/api/paas/v4/chat/completions", models: ["glm-4-flash-250414", "glm-4-flash"], jsonMode: false },
+    deepseek: { url: "https://api.deepseek.com/chat/completions", models: ["deepseek-chat"], jsonMode: true }
+  };
+  async function callCompat(cfg, prompt, signal, model) {
+    const p = COMPAT[cfg.provider];
+    const body = { model, temperature: 0.9, messages: [{ role: "user", content: prompt + "\n\nReply with the JSON object only." }] };
+    if (p.jsonMode) body.response_format = { type: "json_object" };
+    const res = await fetch(p.url, { method: "POST", signal, headers: { "content-type": "application/json", authorization: "Bearer " + cfg.key }, body: JSON.stringify(body) });
+    if (!res.ok) throw await httpErr(res);
+    const j = await res.json();
+    const msg = j.choices && j.choices[0] && j.choices[0].message;
+    if (!msg || !msg.content) throw { code: j.choices && j.choices[0] && j.choices[0].finish_reason === "sensitive" ? "refused" : "empty_completion" };
+    return msg.content;
+  }
   const aiCfg = () => ({ provider: store.get("cc.ai.provider") || "gemini", key: (store.get("cc.ai.key") || "").trim(), model: (store.get("cc.ai.model") || "").trim() });
   function extractJSON(text) {
     const t = String(text || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
@@ -1110,7 +1134,8 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     else if (res.status === 500 || res.status === 503 || res.status === 504 || /overloaded|unavailable/i.test(msg)) code = "overloaded";
     else if (res.status === 401 || res.status === 403 || /api.?key/i.test(msg)) code = "bad_key";
     else if (res.status === 404) code = "bad_model";
-    else if (res.status === 402 || /credit|billing|balance/i.test(msg)) code = "billing";
+    else if (res.status === 402 || /credit|billing|balance|余额不足|insufficient/i.test(msg)) code = "billing";
+    else if (/模型不存在|model.{0,20}(not.{0,10}exist|not found)|does not exist/i.test(msg)) code = "bad_model";
     return { code, message: msg, status: res.status };
   }
   async function callGemini(cfg, prompt, signal, model, audio) {
@@ -1152,6 +1177,16 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
       opts = { ...opts, signal: tm.signal };
       const heavy = opts.modelTier === "complex";
       try {
+        if (COMPAT[cfg.provider]) {
+          if (opts.audio) throw { code: "audio_unsupported" };
+          const models = cfg.model ? [cfg.model] : COMPAT[cfg.provider].models;
+          let last;
+          for (const m of models) {
+            try { return extractJSON(await callCompat(cfg, prompt, opts.signal, m)); }
+            catch (e) { last = e; if (e && e.name === "AbortError") throw e; if (!["bad_model", "overloaded", "invalid_json", "empty_completion"].includes(e && e.code)) throw e; }
+          }
+          throw last;
+        }
         if (cfg.provider === "claude") {
           if (opts.audio) throw { code: "audio_unsupported" };
           return extractJSON(await callClaude(cfg, prompt + "\n\nReply with the JSON object only.", opts.signal, cfg.model || AI_DEFAULTS.claude, heavy ? "medium" : "low"));
@@ -1189,7 +1224,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     if (code === "offline") return "手机现在没有网络。用流量的话，检查「设置 → 蜂窝网络」里 Safari 的开关有没有打开。";
     if (code === "timeout") return "网络太慢，AI 一直没回来。换个信号好的地方再试，或者先用打字。";
     if (code === "network") return "连不上 AI 服务。用流量的话，检查「设置 → 蜂窝网络」里 Safari 的开关有没有打开；开着 VPN 的话可以关掉再试。";
-    if (code === "audio_unsupported") return "Claude 不能直接听录音。请在「⚙︎ 对话设置」里把语音识别换成「手机自带识别」。";
+    if (code === "audio_unsupported") return "现在用的 AI 不能直接听录音。请在「⚙︎ 对话设置」里把语音识别换成「手机自带识别」。";
     if (code === "no_speech") return "没听清你说了什么，再说一次试试。";
     if (code === "overloaded") return "Google 的免费模型现在太忙了，过几秒再试一次。";
     if (code === "region") return "你现在所在的国家或地区不能用 Gemini 免费 API（" + (e.message || "") + "）。";
@@ -1922,7 +1957,7 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     $("ai-provider").value = c.provider; $("ai-key").value = c.key; $("ai-model").value = c.model;
     $("ai-lang").value = store.get("cc.ai.lang") || "en-AU";
     $("ai-model").placeholder = "默认：" + AI_DEFAULTS[c.provider];
-    $("howto-gemini").hidden = c.provider !== "gemini"; $("howto-claude").hidden = c.provider !== "claude";
+    ["gemini", "claude", "zhipu", "deepseek"].forEach((k) => { $("howto-" + k).hidden = c.provider !== k; });
     const st = $("ai-status"); st.textContent = c.key ? "已设置" : "未设置，先填这里"; st.className = "chip " + (c.key ? "ok" : "no");
   }
   $("ai-provider").addEventListener("change", () => { store.set("cc.ai.provider", $("ai-provider").value); store.set("cc.ai.model", ""); renderAiSettings(); });
