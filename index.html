@@ -1,0 +1,1721 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Coffee Chat 练习室</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Coffee Chat">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2c6a58">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working surface. Setup and prep notes on the left, the conversation on the right; history as its own tab. */
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --sunk: #e8ece7;
+  --fg: #18221e;
+  --muted: #5c6a63;
+  --line: #d3dad4;
+  --accent: #2c6a58;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcebe4;
+  --crema: #a8691c;
+  --crema-soft: #f5e8d4;
+  --good: #2f7d4f;
+  --warn: #a8691c;
+  --bad: #b23b3b;
+  --font-display: "Bricolage Grotesque", "Noto Sans SC", system-ui, sans-serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --surface: #1a221e; --sunk: #222c27; --fg: #e5ece7; --muted: #9aaaa1; --line: #2f3a34;
+  --accent: #6fbfa3; --accent-ink: #0d1a15; --accent-soft: #1f3a31; --crema: #e0a858; --crema-soft: #3a2c18;
+  --good: #6cc48f; --warn: #e0a858; --bad: #ec7d7d; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121815; --surface: #1a221e; --sunk: #222c27; --fg: #e5ece7; --muted: #9aaaa1; --line: #2f3a34;
+  --accent: #6fbfa3; --accent-ink: #0d1a15; --accent-soft: #1f3a31; --crema: #e0a858; --crema-soft: #3a2c18;
+  --good: #6cc48f; --warn: #e0a858; --bad: #ec7d7d; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+.mic-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.mic { border: 0; border-radius: 999px; padding: 12px 22px; font-size: 1.05rem; font-weight: 700; background: var(--accent); color: var(--accent-ink); }
+.mic.live { background: var(--bad); color: #fff; }
+@media (prefers-reduced-motion: no-preference) { .mic.live { animation: pulse 1.2s ease-in-out infinite; } @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgb(178 59 59 / 0.18); } } }
+.settings > div { margin-top: 10px; display: grid; gap: 10px; }
+.howto { font-size: 0.86rem; background: var(--sunk); border-radius: 8px; padding: 8px 12px; }
+.howto ol { margin: 4px 0 0; padding-left: 1.3em; display: grid; gap: 2px; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.25; }
+h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+h3 { font-size: 0.98rem; font-weight: 700; }
+p { margin: 0; }
+button, select, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.label { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+header.top .sub { color: var(--muted); font-size: 0.92rem; margin-top: 4px; }
+.tabs { display: flex; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 999px; }
+.tabs button { border: 0; background: transparent; padding: 6px 16px; border-radius: 999px; color: var(--muted); font-weight: 500; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 0.86rem; font-weight: 500; }
+select, textarea, input[type="text"] { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+textarea { resize: vertical; min-height: 72px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg label { flex: 1 1 auto; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 0.88rem; cursor: pointer; background: var(--bg); }
+.seg input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); font-weight: 500; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.persona-card { background: var(--sunk); border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; display: grid; gap: 4px; }
+.persona-card strong { font-family: var(--font-display); font-size: 0.98rem; }
+.persona-card { gap: 8px; padding: 12px; }
+.li-top { display: flex; gap: 10px; align-items: flex-start; }
+.li-avatar { width: 48px; height: 48px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
+.li-id { display: grid; gap: 2px; min-width: 0; }
+.li-id strong { font-size: 1.05rem; }
+.li-head { font-size: 0.84rem; line-height: 1.45; }
+.li-id .muted { font-size: 0.78rem; }
+.li-zh { font-size: 0.84rem; color: var(--muted); }
+.li-sec { border-top: 1px solid var(--line); padding-top: 8px; }
+.li-sec:first-of-type { border-top: 1px solid var(--line); padding-top: 8px; }
+.li-sec summary { font-size: 0.9rem; }
+.li-sec > div { margin-top: 6px; display: grid; gap: 6px; font-size: 0.85rem; }
+.li-sec .chip { justify-self: start; }
+.li-msg { margin: 0; padding: 8px 10px; background: var(--surface); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 0.84rem; font-style: italic; }
+.li-hooks { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.li-item { display: grid; gap: 0; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+.li-item:last-child { border-bottom: 0; }
+.li-item .mono { font-size: 0.78rem; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Conversation */
+.chat { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 560px; max-height: 78vh; padding: 0; gap: 0; overflow: hidden; }
+.chat-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--crema-soft); color: var(--crema); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; flex: none; }
+.who-text { min-width: 0; }
+.who-text strong { display: block; font-family: var(--font-display); }
+.who-text small { color: var(--muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clock { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.95rem; padding: 3px 10px; border-radius: 999px; background: var(--sunk); }
+.clock.over { background: var(--crema-soft); color: var(--crema); }
+.msgs { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.them { background: var(--sunk); align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-bottom-right-radius: 4px; }
+.msg.typing { color: var(--muted); font-style: italic; }
+.turn { display: flex; flex-direction: column; gap: 3px; max-width: 82%; }
+.turn.them { align-self: flex-start; }
+.turn.me { align-self: flex-end; align-items: flex-end; }
+.turn .msg { max-width: 100%; }
+.act { font-size: 0.82rem; font-style: italic; color: var(--muted); padding: 0 4px; }
+.msg.me.act-only { background: transparent; color: var(--muted); font-style: italic; border: 1px dashed var(--line); }
+.note { font-size: 0.8rem; color: var(--fg); background: var(--crema-soft); border-radius: 8px; padding: 4px 9px; display: grid; gap: 1px; }
+.note b { font-weight: 500; color: var(--crema); margin-right: 4px; }
+.notes-off .note { display: none; }
+.meter { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+.meter .bar { width: 90px; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.meter .bar i { display: block; height: 100%; background: var(--accent); transition: width 600ms ease; }
+.meter .delta { font-family: var(--font-mono); min-width: 2.2em; }
+.meter .delta.up { color: var(--good); } .meter .delta.down { color: var(--bad); }
+.notes-off .meter { display: none; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); cursor: pointer; }
+.say { border: 0; background: none; padding: 0 4px; font-size: 0.8rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
+.say:hover { color: var(--accent); }
+.voice-box { display: grid; gap: 8px; }
+.voice-box textarea { min-height: 140px; font-size: 0.8rem; font-family: var(--font-mono); }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 3px 10px; font-size: 0.82rem; color: var(--muted); }
+.quick button:hover { color: var(--fg); border-color: var(--muted); }
+.dots::after { content: "…"; }
+@media (prefers-reduced-motion: no-preference) {
+  .dots::after { animation: dots 1.2s steps(4) infinite; content: ""; display: inline-block; width: 1.2em; text-align: left; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+}
+.empty-chat { margin: auto; text-align: center; max-width: 420px; display: grid; gap: 10px; color: var(--muted); padding: 24px 8px; }
+.empty-chat h2 { color: var(--fg); }
+.compose { border-top: 1px solid var(--line); padding: 12px 16px; display: grid; gap: 8px; }
+.compose textarea { min-height: 52px; max-height: 160px; }
+.compose .row { justify-content: space-between; }
+.hint { font-size: 0.8rem; color: var(--muted); }
+.notice { font-size: 0.86rem; padding: 8px 12px; border-radius: 8px; background: var(--crema-soft); color: var(--fg); }
+
+/* Feedback */
+.fb { display: grid; gap: 16px; }
+.score-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.score { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; line-height: 1; }
+.score small { font-size: 1rem; color: var(--muted); font-weight: 500; }
+.chip { display: inline-block; font-size: 0.78rem; padding: 2px 10px; border-radius: 999px; background: var(--sunk); color: var(--muted); font-weight: 500; }
+.chip.ok { background: var(--accent-soft); color: var(--good); }
+.chip.no { background: var(--crema-soft); color: var(--warn); }
+.fb section { display: grid; gap: 8px; }
+.fb ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.fix { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; display: grid; gap: 2px; }
+.fix .from { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--bad); }
+.fix .to { font-weight: 500; }
+.fix .why { font-size: 0.86rem; color: var(--muted); }
+
+/* Prep notes */
+details { border-top: 1px solid var(--line); padding-top: 10px; }
+details:first-of-type { border-top: 0; padding-top: 0; }
+summary { cursor: pointer; font-weight: 500; font-family: var(--font-display); }
+details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
+.qlist { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.qlist li { display: grid; gap: 0; }
+.qlist .en { font-weight: 500; }
+.qlist .zh { color: var(--muted); font-size: 0.84rem; }
+.use-q { border: 0; background: none; padding: 0; text-align: left; color: inherit; }
+.use-q:hover .en { color: var(--accent); }
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.flow div { background: var(--sunk); border-radius: 8px; padding: 8px; font-size: 0.82rem; }
+.flow b { display: block; font-family: var(--font-mono); font-size: 0.95rem; }
+.credit { font-size: 0.78rem; color: var(--muted); }
+.credit a { color: inherit; }
+
+/* History */
+.hist-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 2px; }
+.stat b { font-family: var(--font-display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.trend { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 8px; }
+.trend svg { width: 100%; height: 120px; display: block; }
+.hist-grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 20px; }
+@media (max-width: 860px) { .hist-grid { grid-template-columns: minmax(0, 1fr); } }
+.hist-list { display: grid; gap: 8px; }
+.hitem { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; }
+.hitem[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.hitem .t { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hitem .d { font-size: 0.8rem; color: var(--muted); grid-column: 1; }
+.hitem .s { grid-row: 1 / span 2; grid-column: 2; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.transcript { display: grid; gap: 6px; font-size: 0.9rem; max-height: 420px; overflow-y: auto; background: var(--bg); border-radius: 8px; padding: 12px; }
+.transcript p b { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); margin-right: 6px; }
+.confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--crema-soft); padding: 8px 12px; border-radius: 8px; font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .msg { animation: pop 160ms ease-out; }
+  @keyframes pop { from { transform: translateY(4px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Coffee Chat 练习室</h1>
+      <p class="sub">和各种性格的"从业者"练英文 coffee chat：对方会对你的语气、停顿和小动作作出反应，旁注实时解释，结束后拿到中文点评，每次都存档。</p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-practice" aria-selected="true" aria-controls="view-practice">练习</button>
+      <button role="tab" id="tab-history" aria-selected="false" aria-controls="view-history">练习记录</button>
+    </div>
+  </header>
+
+  <!-- PRACTICE -->
+  <section id="view-practice" role="tabpanel" aria-labelledby="tab-practice">
+    <div class="grid">
+      <aside class="panel" id="setup">
+        <details class="settings" id="ai-settings">
+          <summary>⚙️ AI 设置 <span class="chip" id="ai-status"></span></summary>
+          <div>
+            <label class="field"><span>用哪个 AI</span>
+              <select id="ai-provider"><option value="gemini">Google Gemini（有免费额度）</option><option value="claude">Claude（效果最好，按用量付费）</option></select>
+            </label>
+            <label class="field"><span>API key（只保存在这台设备上）</span>
+              <input type="password" id="ai-key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴你的 API key">
+            </label>
+            <label class="field"><span>模型（一般不用改，留空用默认）</span>
+              <input type="text" id="ai-model" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </label>
+            <label class="field"><span>识别你说话用的口音</span>
+              <select id="ai-lang"><option value="en-AU">英语（澳洲）</option><option value="en-US">英语（美国）</option><option value="en-GB">英语（英国）</option></select>
+            </label>
+            <div class="row"><button class="btn primary" type="button" id="ai-save">保存并测试</button><span class="hint" id="ai-msg"></span></div>
+            <div class="howto" id="howto-gemini">怎么拿到免费的 Gemini API key：
+              <ol><li>打开 <b>aistudio.google.com</b>，用 Google 账号登录</li><li>点「Get API key」，再点「Create API key」</li><li>复制那串以 AIza 开头的字</li><li>回来粘贴到上面，点「保存并测试」</li></ol>
+            </div>
+            <div class="howto" id="howto-claude" hidden>怎么拿到 Claude API key：
+              <ol><li>打开 <b>console.anthropic.com</b>，注册并登录</li><li>在 Billing 里绑卡、充一点钱（和 Claude 订阅分开计费）</li><li>在 API Keys 里点「Create Key」，复制以 sk-ant- 开头的字</li><li>回来粘贴到上面，点「保存并测试」</li></ol>
+            </div>
+          </div>
+        </details>
+        <h2>这次和谁聊</h2>
+        <label class="field"><span>对方角色</span>
+          <select id="persona"></select>
+        </label>
+        <div class="persona-card" id="persona-card"></div>
+        <div class="field"><span>对方状态</span>
+          <div class="seg" id="difficulty"></div>
+        </div>
+        <div class="field"><span>计划时长</span>
+          <div class="seg" id="duration"></div>
+        </div>
+        <label class="field"><span>练习重点</span>
+          <select id="focus"></select>
+        </label>
+        <label class="field"><span>你是怎么认识 Ta 的</span>
+          <select id="channel">
+            <option value="any">随机（线上或线下）</option>
+            <option value="online">线上（LinkedIn、邮件、校友群、线上讲座…）</option>
+            <option value="offline">线下（meetup、招聘会、朋友介绍、当场偶遇…）</option>
+          </select>
+        </label>
+        <div class="row">
+          <button class="btn primary" type="button" id="btn-random">🎲 随机生成一个新的人</button>
+          <button class="btn" type="button" id="btn-reroll-found">换个认识方式</button>
+        </div>
+        <details>
+          <summary>想真正开口说？用 Claude App 语音模式</summary>
+          <div class="voice-box">
+            <p>这个页面拿不到麦克风权限。想完全用嘴说、用耳朵听，可以把当前这个人一键复制成设定，粘贴到 Claude App 的新对话里，然后点语音模式按钮开始聊。说 "END" 结束，它会给你中文点评。语音模式里没有实时旁注，也不会存进练习记录。</p>
+            <div class="row"><button class="btn" type="button" id="btn-voice-copy">复制语音模式设定</button><span class="hint" id="voice-copy-msg"></span></div>
+            <textarea id="voice-prompt" readonly hidden></textarea>
+          </div>
+        </details>
+        <label class="field"><span>你的背景（只用于点评，可选）</span>
+          <textarea id="bg" placeholder="例：公共卫生硕士，墨尔本在读，会 R 和一点 SQL，想找 data analyst 或 research assistant 入门岗位"></textarea>
+        </label>
+        <label class="field"><span>这次想练什么（可选）</span>
+          <input type="text" id="goal" placeholder="例：自我介绍更自然；结尾要到推荐人">
+        </label>
+
+        <details open>
+          <summary>聊天结构 20 / 55 / 25</summary>
+          <div>
+            <div class="flow">
+              <div><b>20%</b>寒暄 + 30 秒自我介绍，说明为什么约对方</div>
+              <div><b>55%</b>按重要性问 3–5 个问题，跟着回答追问</div>
+              <div><b>25%</b>问"我能帮上什么"，礼貌收尾，问可以再联系谁</div>
+            </div>
+            <p>自我介绍模板：<em>I'm ___, I recently finished ___ and I'm based in Melbourne. I've been looking into ___ roles, and since you've been doing that at ___ for a few years, I'd love to hear how you got into it.</em></p>
+          </div>
+        </details>
+        <details>
+          <summary>问题库（点一下填进输入框）</summary>
+          <div id="qbank"></div>
+        </details>
+        <details>
+          <summary>现实中怎么找到这类人</summary>
+          <div>
+            <ul class="qlist">
+              <li><span class="en">LinkedIn 搜索</span><span class="zh">搜职位关键词 + Melbourne（如 "clinical data analyst" Melbourne），筛"二度人脉"；再用"学校"筛选找校友，校友回复率最高</span></li>
+              <li><span class="en">看对方最近的动态</span><span class="zh">找一条 Ta 最近发的帖子、论文或演讲，联系时具体提一句，比"我想了解行业"有效得多</span></li>
+              <li><span class="en">大学和医院官网</span><span class="zh">研究岗看学院的 staff 页面和项目页面；教授更常看邮件，联系教授发邮件比 LinkedIn 好</span></li>
+              <li><span class="en">线下活动</span><span class="zh">健康数据 / 健康信息学 meetup、大学公开讲座、行业会议的茶歇时间；讲者会后最好搭话</span></li>
+              <li><span class="en">留学生和校友圈</span><span class="zh">校友群、学校 careers 的 mentoring 项目；已经找到工作的学长学姐最能理解你</span></li>
+              <li><span class="en">请人介绍</span><span class="zh">朋友、同学、志愿活动认识的人帮忙介绍，熟人介绍比陌生联系的回复率高很多</span></li>
+              <li><span class="en">联系消息怎么写</span><span class="zh">300 字符以内：你是谁 + 为什么找 Ta（具体到某条帖子或经历）+ 请求 15–20 分钟 + 一句"忙的话完全理解"。每张资料卡里都有一条示例</span></li>
+              <li><span class="en">没回复怎么办</span><span class="zh">一周后可以礼貌跟进一次，之后就不要再追；同时多联系几个人</span></li>
+            </ul>
+          </div>
+        </details>
+        <details>
+          <summary>注意事项</summary>
+          <div>
+            <ul class="qlist">
+              <li><span class="en">别直接要工作或内推</span><span class="zh">第一次聊重点是了解和建立关系；对方愿意的话会主动提</span></li>
+              <li><span class="en">公开查得到的不问</span><span class="zh">先看对方 LinkedIn 和雇主官网，问只有本人能回答的</span></li>
+              <li><span class="en">准时结束</span><span class="zh">到点主动说 "I know we're about at time"，对方想继续自然会说</span></li>
+              <li><span class="en">24 小时内发感谢</span><span class="zh">提一句聊到的具体内容，附上答应过的东西</span></li>
+            </ul>
+          </div>
+        </details>
+        <p class="credit">结构和部分原则改编自 <a href="https://github.com/cwlin0131/coffee-chat-prep" target="_blank" rel="noopener">Coffee Chat Playbook</a>（CW Lin，CC BY 4.0），已改为求职场景。</p>
+      </aside>
+
+      <div class="panel chat" id="chat">
+        <div class="chat-head">
+          <div class="who">
+            <div class="avatar" id="avatar">P</div>
+            <div class="who-text"><strong id="who-name">—</strong><small id="who-role">—</small></div>
+          </div>
+          <div class="row">
+            <span class="meter" id="meter" hidden title="对方此刻有多投入，会随你的每句话变化"><span>对方投入度</span><span class="bar"><i id="meter-fill" style="width:50%"></i></span><span class="delta" id="meter-delta"></span></span>
+            <label class="toggle"><input type="checkbox" id="notes-toggle" checked> 实时旁注</label>
+            <label class="toggle" id="tts-wrap"><input type="checkbox" id="tts-toggle" checked> 🔊 朗读</label>
+            <span class="clock" id="clock">00:00</span>
+            <button class="btn" id="btn-end" hidden>结束并点评</button>
+          </div>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="compose" id="compose">
+          <div class="notice" id="notice" hidden></div>
+          <div id="start-area" class="row">
+            <button class="btn primary" id="btn-start">开始 coffee chat</button>
+            <span class="hint">对方先打招呼，你用英文回应。</span>
+          </div>
+          <div id="input-area" hidden>
+            <div class="mic-row">
+              <button class="mic" type="button" id="btn-mic">🎤 按一下开始说</button>
+              <label class="toggle"><input type="checkbox" id="call-toggle"> 通话模式：停顿就自动发送，对方说完自动接着听</label>
+            </div>
+            <label for="input" class="label">你说的话会显示在这里，发送前可以改</label>
+            <textarea id="input" placeholder="Hi! Thanks so much for making the time...（动作可以写在括号里，比如 (laughs)）"></textarea>
+            <div class="quick" id="quick" aria-label="小反应"></div>
+            <div class="row">
+              <span class="hint" id="dictation-hint">🎤 用说的：点手机键盘上的麦克风键 · Enter 发送</span>
+              <label class="toggle"><input type="checkbox" id="autosend-toggle"> 停顿 2.5 秒自动发送</label>
+              <button class="btn primary" id="btn-send">发送</button>
+            </div>
+          </div>
+          <div id="after-area" class="row" hidden>
+            <button class="btn primary" id="btn-again">再练一次</button>
+            <button class="btn" id="btn-to-history">查看练习记录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn" type="button" id="btn-export">导出记录备份</button>
+      <label class="btn" for="import-file">导入备份</label>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <span class="hint" id="io-msg">记录只存在这台设备的浏览器里，建议定期导出备份。</span>
+    </div>
+    <div class="hist-top">
+      <div class="stat"><span class="label">练习次数</span><b id="st-count">0</b></div>
+      <div class="stat"><span class="label">平均分</span><b id="st-avg">—</b></div>
+      <div class="stat"><span class="label">最近 3 次平均</span><b id="st-recent">—</b></div>
+      <div class="stat"><span class="label">累计时长</span><b id="st-min">0 分钟</b></div>
+    </div>
+    <div class="trend" id="trend" style="margin-top:12px">
+      <span class="label">分数变化</span>
+      <svg id="trend-svg" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="每次练习的分数"></svg>
+    </div>
+    <div class="hist-grid">
+      <div class="hist-list" id="hist-list"></div>
+      <div class="panel" id="hist-detail"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- Content ----------
+  const PERSONAS = [
+    { id: "cda", name: "Priya", title: "Clinical Data Analyst", org: "墨尔本一家大型公立医疗服务机构",
+      zh: "在医院数据团队 4 年，日常写 SQL（SQL Server）、做 Power BI 报表、对接 Epic 病历系统的数据。从 graduate analyst 做起。",
+      en: "Priya, a Clinical Data Analyst with 4 years at a large public health service in Melbourne. Day to day: SQL Server queries, Power BI dashboards, reporting from the Epic EMR, data requests from clinicians and the Department of Health. Started as a graduate data analyst after a Master of Public Health. Practical, a bit dry humour.",
+      open: "Hi! Sorry, the coffee line was ridiculous. You reached out on LinkedIn, right? Nice to meet you." },
+    { id: "ra", name: "Tom", title: "Research Assistant（流行病学）", org: "墨尔本一所大学的人口与全球健康学院",
+      zh: "在 NHMRC 资助的项目做研究助理，做系统综述、数据清洗和 R/Stata 分析，正在考虑读博。",
+      en: "Tom, a Research Assistant at a Melbourne university's school of population and global health, working on an NHMRC-funded project. Does systematic reviews, data cleaning, and analysis in R and Stata. Got the job after volunteering on a project during his Master's. Considering a PhD. Thoughtful, friendly, talks a lot about academia's contract-to-contract reality.",
+      open: "Hey, good to meet you! I've only got a little while before a team meeting, but happy to chat. What's on your mind?" },
+    { id: "ctc", name: "Mei", title: "Clinical Trial Coordinator", org: "墨尔本一家医院的临床研究部门",
+      zh: "从 Clinical Trial Assistant 做起，现在协调肿瘤临床试验，招募患者、管理 CRF 和伦理文件。有 GCP 证书。",
+      en: "Mei, a Clinical Trial Coordinator in a Melbourne hospital's oncology research unit. Started as a Clinical Trial Assistant on a 6-month contract after a biomedical science degree. Handles patient recruitment, CRFs, ethics submissions, sponsor monitoring visits. Has GCP certification. Warm, organised, honest that the role is busy and contracts are short.",
+      open: "Hi there! Lovely to meet you. I grabbed us a table in the corner — so, tell me a bit about yourself?" },
+    { id: "doh", name: "James", title: "Senior Data Analyst", org: "维州政府卫生部门",
+      zh: "在政府卫生部门做分析，用 SQL、Power BI 和 Azure Databricks，支持政策和医院绩效报告。",
+      en: "James, a Senior Data Analyst in the Victorian state government's health department. Uses SQL, Power BI and Azure Databricks; supports policy teams and hospital performance reporting with state health datasets. Came from a private-sector analytics job 5 years ago. Measured, precise, cares about how candidates think about data quality and stakeholders. Notes that government roles often need citizenship or permanent residency.",
+      open: "Hello, good to meet you. I've got about twenty minutes. What would you like to know?" },
+    { id: "cra", name: "Sarah", title: "Clinical Research Associate", org: "一家跨国 CRO（合同研究组织）",
+      zh: "做了 3 年现场监查 CRA，经常出差去各个研究中心，之前在医院当过 trial coordinator。",
+      en: "Sarah, a Clinical Research Associate at a global contract research organisation (CRO), 3 years of on-site monitoring across Victorian and interstate sites, lots of travel. Was a hospital trial coordinator before. Direct and energetic; knows most CRA roles want 2+ years of monitoring experience and full work rights, and will say so plainly.",
+      open: "Hi! Sorry, I've just come from a site visit so I'm a bit frazzled. Great to meet you though — what can I help with?" },
+    { id: "lead", name: "Daniel", title: "Data & Analytics Team Lead（会招人）", org: "墨尔本一家医疗服务机构的数据团队",
+      zh: "带一个 8 人数据团队，参与招聘。聊得好可能会记住你，但不会当场给工作。",
+      en: "Daniel, team lead of an 8-person data and analytics team at a Melbourne health service, involved in hiring graduates and analysts. Friendly but evaluative: quietly notices whether the person did their homework, can explain their skills concretely, and respects his time. Won't offer a job or referral on the spot, but might suggest keeping in touch or name someone else to talk to if impressed.",
+      open: "Hi, thanks for reaching out. Always happy to meet people interested in health data. So, where are you at?" },
+    { id: "nurse", name: "Grace", title: "护士转行 Clinical Informatics", org: "墨尔本一家私立医院",
+      zh: "当了 10 年 ICU 护士，后来转去做电子病历系统和临床流程优化。很懂一线，聊天会讲病房里的故事。",
+      en: "Grace, a former ICU nurse of 10 years who moved into clinical informatics at a private hospital in Melbourne, working on the EMR rollout and clinical workflows. Loves stories from the ward, values people who understand clinicians' pain points, a bit sceptical of 'data people' who've never been near a patient.",
+      open: "Hi love, sorry — I came straight from a meeting. Right, coffee's here. So how did you find me?" },
+    { id: "prof", name: "Alan", title: "流行病学副教授", org: "墨尔本一所大学",
+      zh: "带博士生，手上有几个科研项目。说话慢条斯理，喜欢反问，讨厌被当成'找工作的跳板'。",
+      en: "Associate Professor Alan, an epidemiologist at a Melbourne university who supervises PhD students and leads grant-funded projects. Speaks slowly and thoughtfully, likes asking Socratic questions back, enjoys genuine curiosity about research, quietly put off when people treat him purely as a stepping stone to a job.",
+      open: "Ah, hello. Please, sit. I have to confess I don't remember exactly what your email said — remind me?" },
+    { id: "lina", name: "Lina", title: "Data Analyst（同样是留学生出身）", org: "墨尔本一家保险/健康险公司",
+      zh: "中国留学生，墨尔本读完硕士后找了大半年工作，两年前入职。像学姐，但也会觉得'太功利'的问法有点累。",
+      en: "Lina, originally an international student from China, finished a Master's in Melbourne, job-hunted for most of a year, and has been a Data Analyst at a health insurer for two years. Friendly like an older schoolmate, speaks English with the conversation (occasionally a Chinese word slips in), very honest about the visa and job-search grind, gets a little tired when people only want tips and treat her like a vending machine.",
+      open: "Hey! Finally meeting in person, haha. Did you find the place okay? This café is kind of hidden." },
+    { id: "founder", name: "Mark", title: "Health-tech 创业公司创始人", org: "一家做远程医疗软件的初创公司",
+      zh: "节奏快、想法多，喜欢聊产品和愿景，会突然问你'你觉得这个市场怎么样'。",
+      en: "Mark, founder of a small Melbourne telehealth software startup (about 15 people). Fast-talking, big-picture, loves talking about product and vision, often flips the conversation by asking what you think about the market. Respects people with opinions; bored by people who only ask textbook questions.",
+      open: "Hey hey, good to meet you. Grab whatever you want, it's on me. So — what's your story?" },
+    { id: "recruiter", name: "Rachel", title: "医疗行业招聘顾问", org: "一家招聘中介",
+      zh: "每天见很多候选人，说话直接，几分钟就能判断你清不清楚自己要什么。",
+      en: "Rachel, a recruitment consultant specialising in healthcare and health-data roles at a Melbourne agency. Meets lots of candidates, very direct, quickly judges whether someone knows what they want and can describe their skills crisply. Friendly but efficient; will be blunt about work-rights requirements and the market.",
+      open: "Hi! Nice to put a face to the name. So, tell me — what kind of role are you actually after?" },
+    { id: "ops", name: "Ben", title: "医院运营经理", org: "墨尔本一家社区医疗机构",
+      zh: "不是做数据的，但天天用报表做决策。务实、讨厌术语，喜欢听大白话。",
+      en: "Ben, an operations manager at a community health organisation in Melbourne. Not a data person, but relies on reports to manage staffing and waitlists every day. Practical, down to earth, dislikes jargon, likes plain talk and footy chat, values people who can explain things simply.",
+      open: "G'day, how's it going? Bloody cold out there today, eh. What are you having?" }
+  ];
+  const DIFFICULTY = [
+    { id: "warm", zh: "很热心", en: "Very warm and enthusiastic. Shares generously, tells stories, offers ideas and even help, asks lots of questions back. The challenge for the job seeker is to listen, respond and not just take." },
+    { id: "friendly", zh: "友好", en: "Warm and generous with time. Gives full, helpful answers and occasionally asks the candidate a question back." },
+    { id: "busy", zh: "很忙", en: "Busy and slightly distracted. Answers are short (1-2 sentences) unless a question is genuinely interesting. Mentions the hard stop when time is nearly up." },
+    { id: "reserved", zh: "慢热", en: "Polite but guarded at first. Gives generic answers to generic questions; opens up with concrete, specific, well-researched questions or when the candidate shares something real about themselves." },
+    { id: "cold", zh: "冷淡", en: "Cool and a bit detached. Minimal answers, little eye contact, doesn't ask questions back, lets silences sit. Not rude, just hard to warm up. Only genuine curiosity, humour or a real shared interest thaws them, and they cool further at anything that feels transactional." },
+    { id: "chatty", zh: "话多爱跑题", en: "Talkative and goes off on tangents (weekend plans, footy, a funny story from work). Friendly, but the job seeker must enjoy the tangent first and then gently steer back without sounding abrupt." }
+  ];
+  // LinkedIn-style profiles (fictional) + how the job seeker found and contacted each person.
+  const PROFILES = {
+    cda: { headline: "Clinical Data Analyst | SQL Server · Power BI · Epic reporting | Turning hospital data into decisions", conn: "500+",
+      about: "I help clinicians and managers get the numbers they need, from ED wait times to elective surgery reporting. MPH by training, started on a graduate program. Always happy to chat with people starting out in health data.",
+      exp: [["Clinical Data Analyst", "大型公立医疗服务机构 · 全职", "2023.03 – 至今", "Epic 报表、急诊和手术室的 Power BI 看板、向卫生部报送数据"],
+            ["Graduate Data Analyst", "同一机构 · Graduate Program", "2022.02 – 2023.03", "写 SQL 脚本、SSRS 报表、数据质量检查"],
+            ["Research Intern", "大学公共卫生学院", "2021", "用 R 清洗问卷数据"]],
+      edu: [["Master of Public Health（生物统计方向）", "墨尔本一所大学", "2020 – 2021"], ["Bachelor of Biomedical Science", "墨尔本一所大学", "2016 – 2019"]],
+      skills: ["SQL Server", "Power BI", "SSRS", "Epic Clarity", "R", "Data quality"],
+      activity: "2 周前发帖：\"Finally migrated our last SSRS report to Power BI 🎉 Anyone else still fighting with legacy reports?\"" },
+    ra: { headline: "Research Assistant, Population Health | Systematic reviews · R · Stata", conn: "312",
+      about: "Working on an NHMRC-funded project on chronic disease prevention. Interested in evidence synthesis, maybe a PhD down the track. Runner, terrible cook.",
+      exp: [["Research Assistant", "大学人口与全球健康学院 · 定期合同", "2024.07 – 至今", "系统综述的筛选和数据提取、队列数据清洗、R/Stata 分析"],
+            ["Research Volunteer", "同一学院", "2024.02 – 2024.06", "读硕士期间在一个 scoping review 项目做志愿者"],
+            ["Casual Tutor, Epidemiology", "同一大学", "2023 – 2024", "带本科流行病学辅导课"]],
+      edu: [["Master of Epidemiology", "墨尔本一所大学", "2022 – 2023"], ["Bachelor of Science（Psychology）", "墨尔本一所大学", "2018 – 2021"]],
+      skills: ["R", "Stata", "Covidence", "Systematic reviews", "Meta-analysis"],
+      activity: "上周分享论文：\"Our scoping review on digital interventions for type 2 diabetes is out! My first co-authorship.\"" },
+    ctc: { headline: "Clinical Trial Coordinator, Oncology | ICH-GCP certified | Patient-centred research", conn: "500+",
+      about: "Coordinating oncology trials from start-up to close-out. I started as a CTA on a 6-month contract, so happy to share what I learned along the way.",
+      exp: [["Clinical Trial Coordinator", "医院肿瘤临床研究部门", "2024.01 – 至今", "患者筛选和招募、CRF/EDC、伦理和治理申请、对接监查访视"],
+            ["Clinical Trial Assistant", "同一部门 · 6 个月合同后续签", "2022.07 – 2023.12", "研究文件夹、实验室样本盒、排期、数据录入"],
+            ["Pharmacy Assistant", "社区药房 · 兼职", "2019 – 2022", ""]],
+      edu: [["Bachelor of Biomedical Science", "墨尔本一所大学", "2016 – 2019"], ["ICH-GCP 证书", "线上课程", "2022"]],
+      skills: ["ICH-GCP", "REDCap", "Medidata Rave", "Ethics submissions", "Patient recruitment"],
+      activity: "在国际临床试验日的帖子下评论：\"Shout-out to every CTA keeping the site files alive 🙌\"" },
+    doh: { headline: "Senior Data Analyst, Victorian public sector health | SQL · Databricks · Power BI", conn: "500+",
+      about: "Supporting policy and performance teams with state health datasets. Ex-retail analytics. Data quality nerd.",
+      exp: [["Senior Data Analyst", "维州政府卫生部门", "2023 – 至今", "支持政策团队和医院绩效报告，Databricks 数据管道"],
+            ["Data Analyst", "同一部门", "2021 – 2023", ""],
+            ["Analyst", "一家零售数据分析公司", "2017 – 2021", "客户分析和销售预测"]],
+      edu: [["Bachelor of Commerce（Econometrics）", "墨尔本一所大学", "2013 – 2016"]],
+      skills: ["SQL", "Azure Databricks", "Power BI", "Python", "Data governance", "Stakeholder management"],
+      activity: "上周在公共部门数据 meetup 做分享：\"Why data quality is a people problem, not a tech problem\"" },
+    cra: { headline: "Clinical Research Associate II | Oncology & Rare Disease | Site monitoring VIC/TAS", conn: "500+",
+      about: "On the road most weeks visiting sites. Former hospital trial coordinator. Coffee-powered.",
+      exp: [["Clinical Research Associate II", "跨国 CRO", "2024 – 至今", "维州和塔州研究中心的现场监查"],
+            ["Clinical Research Associate I", "同一 CRO", "2023 – 2024", ""],
+            ["Clinical Trial Coordinator", "墨尔本一家医院", "2020 – 2023", ""]],
+      edu: [["Bachelor of Science（Pharmacology）", "墨尔本一所大学", "2016 – 2019"]],
+      skills: ["Site monitoring", "Source data verification", "ICH-GCP", "Veeva Vault", "Risk-based monitoring"],
+      activity: "发帖：\"Hobart → Ballarat → Geelong in one week. CRA life ✈️🚗\"" },
+    lead: { headline: "Data & Analytics Team Lead | Health services | Building teams people trust with their data", conn: "500+",
+      about: "Leading an 8-person team across reporting, analytics and data engineering. I hire graduates most years and love watching people grow.",
+      exp: [["Team Lead, Data & Analytics", "墨尔本一家医疗服务机构", "2022 – 至今", "带 8 人团队，负责招聘"],
+            ["Senior Analyst", "同一机构", "2018 – 2022", ""],
+            ["BI Developer", "一家咨询公司", "2014 – 2018", ""]],
+      edu: [["Bachelor of Information Technology", "墨尔本一所大学", "2010 – 2013"]],
+      skills: ["Team leadership", "Hiring", "SQL", "Power BI", "Data strategy"],
+      activity: "发帖：\"We're not hiring right now, but here's what made our last graduate hire stand out...\"" },
+    nurse: { headline: "Clinical Informatics Lead | Ex-ICU RN | Making the EMR work for clinicians, not against them", conn: "500+",
+      about: "Ten years in ICU taught me what clinicians actually need from technology. Now I help make sure our systems deliver it.",
+      exp: [["Clinical Informatics Lead", "墨尔本一家私立医院", "2023 – 至今", "电子病历上线、临床流程、培训医护"],
+            ["Clinical Informatics Nurse", "同一医院", "2021 – 2023", ""],
+            ["ICU Registered Nurse", "墨尔本一家公立医院", "2011 – 2021", ""]],
+      edu: [["Bachelor of Nursing", "墨尔本一所大学", "2007 – 2010"], ["Graduate Certificate in Health Informatics", "墨尔本一所大学", "2020"]],
+      skills: ["Clinical workflows", "EMR implementation", "Change management", "Clinician training"],
+      activity: "发帖：\"Go-live week done. Nurses are tired, I'm tired, but medication errors on the pilot ward are down.\"" },
+    prof: { headline: "Associate Professor of Epidemiology | Cardiovascular & chronic disease | PhD supervisor", conn: "500+",
+      about: "I lead cohort studies on cardiovascular risk and supervise a small group of PhD students.",
+      exp: [["Associate Professor", "墨尔本一所大学", "2019 – 至今", "心血管和慢性病队列研究，指导博士生"],
+            ["Senior Research Fellow", "同一大学", "2013 – 2019", ""],
+            ["Postdoctoral Fellow", "英国一所大学", "2009 – 2013", ""]],
+      edu: [["PhD, Epidemiology", "英国一所大学", "2005 – 2009"], ["MSc, Medical Statistics", "英国一所大学", "2004 – 2005"]],
+      skills: ["Cohort studies", "Causal inference", "Grant writing", "Supervision"],
+      activity: "分享：\"Our team has a new NHMRC grant on cardiovascular risk in migrant communities. PhD scholarship to be advertised early next year.\"" },
+    lina: { headline: "Data Analyst @ health insurer | SQL · Python · Tableau | Ex-international student, happy to help 🙂", conn: "500+",
+      about: "Came to Melbourne for my Master's, job-hunted for most of a year, now two years into my first analyst role. If you're an international student going through it — I see you.",
+      exp: [["Data Analyst", "一家健康险公司", "2024 – 至今", "理赔数据分析、Tableau 报表"],
+            ["Data Analyst Intern（6 个月）", "同一公司", "2024", "实习后转正"],
+            ["Retail Assistant · 兼职", "商场门店", "2022 – 2023", ""]],
+      edu: [["Master of Data Science", "墨尔本一所大学", "2021 – 2023"], ["统计学本科", "中国一所大学", "2017 – 2021"]],
+      skills: ["SQL", "Python", "Tableau", "Claims data", "A/B testing"],
+      activity: "发帖：\"2 years ago today I got my first offer in Australia after 87 applications. To everyone still applying: 加油.\"" },
+    founder: { headline: "Founder & CEO @ telehealth startup | Making specialist care accessible in regional Australia", conn: "500+",
+      about: "Ex-big tech PM. Building telehealth software so regional patients don't drive four hours for a 15-minute specialist appointment.",
+      exp: [["Founder & CEO", "远程医疗软件初创公司（约 15 人）", "2021 – 至今", ""],
+            ["Product Manager", "一家大型科技公司", "2016 – 2021", ""],
+            ["Software Engineer", "一家软件公司", "2012 – 2016", ""]],
+      edu: [["Bachelor of Software Engineering", "墨尔本一所大学", "2008 – 2011"]],
+      skills: ["Product", "Fundraising", "Telehealth", "Go-to-market"],
+      activity: "发帖：\"We just signed our 10th regional health service! Not hiring right now, but always happy to chat to curious people.\"" },
+    recruiter: { headline: "Senior Recruitment Consultant | Health, Data & Analytics | Melbourne", conn: "500+",
+      about: "I place analysts, data engineers and health informatics people across Victorian health services. Ask me about salary benchmarks.",
+      exp: [["Senior Recruitment Consultant", "一家招聘中介", "2022 – 至今", ""],
+            ["Recruitment Consultant", "同一中介", "2019 – 2022", ""],
+            ["HR Coordinator", "墨尔本一家医院", "2016 – 2019", ""]],
+      edu: [["Bachelor of Business（HR）", "墨尔本一所大学", "2012 – 2015"]],
+      skills: ["Recruitment", "Health sector", "Salary benchmarking", "Candidate coaching"],
+      activity: "发帖：\"Hot take: a 1-page CV with 3 clear wins beats a 4-page CV every time.\"" },
+    ops: { headline: "Operations Manager | Community health | Waitlists, rosters and the occasional miracle", conn: "280",
+      about: "Keeping a busy community health service running. I don't build the reports, but I live by them.",
+      exp: [["Operations Manager", "墨尔本一家社区医疗机构", "2020 – 至今", "排班、候诊名单、服务运营"],
+            ["Team Leader, Intake & Access", "同一机构", "2016 – 2020", ""],
+            ["Admin Officer", "同一机构", "2013 – 2016", "从前台行政做起"]],
+      edu: [["Diploma of Business", "TAFE", "2011 – 2012"], ["Graduate Certificate in Health Management", "墨尔本一所大学", "2019"]],
+      skills: ["Operations", "Rostering", "Waitlist management", "Stakeholder engagement"],
+      activity: "发帖：\"Our new waitlist dashboard means we can finally see who's been waiting longest at a glance. Big thanks to our data team.\"" }
+  };
+
+  // ---------- Random person generator ----------
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pickN = (a, n) => a.slice().sort(() => Math.random() - 0.5).slice(0, n);
+  const NOW = 2026;
+
+  const ORG = {
+    hospital: [["墨尔本一家大型公立医疗服务机构", "a large public health service in Melbourne"], ["墨尔本东南区一家公立医院", "a public hospital in Melbourne's south-east"], ["一家私立医院集团", "a private hospital group"], ["墨尔本一家儿童医院", "a children's hospital in Melbourne"]],
+    trials: [["医院的肿瘤临床研究部门", "a hospital oncology research unit"], ["一家医学研究所", "a Melbourne medical research institute"], ["医院的心脏科临床试验团队", "a hospital cardiology trials team"]],
+    uni: [["墨尔本一所大学的公共卫生学院", "a Melbourne university's school of public health"], ["一所大学的流行病与生物统计中心", "a university centre for epidemiology and biostatistics"], ["一家医学研究所", "a Melbourne medical research institute"]],
+    gov: [["维州政府卫生部门", "the Victorian state health department"], ["一个联邦政府卫生机构", "a federal health agency"], ["一个地区公共卫生单位", "a regional public health unit"]],
+    cro: [["一家跨国 CRO", "a global contract research organisation"], ["一家本土小型 CRO", "a small Australian CRO"]],
+    consult: [["一家咨询公司的健康板块", "the health practice of a consulting firm"], ["一家健康经济咨询公司", "a boutique health economics consultancy"]],
+    insurer: [["一家健康险公司", "a private health insurer"]],
+    startup: [["一家远程医疗初创公司", "a telehealth startup"], ["一家做医疗 AI 的初创公司", "a health AI startup"], ["一家做诊所管理软件的公司", "a clinic software company"]],
+    agency: [["一家医疗行业招聘中介", "a healthcare recruitment agency"]],
+    community: [["一家社区医疗机构", "a community health organisation"], ["一家养老服务机构", "an aged care provider"]],
+    ngo: [["一家健康公益组织", "a health charity"], ["一家原住民社区健康服务机构", "an Aboriginal community-controlled health organisation"]]
+  };
+  const FIELD = {
+    data: ["健康数据", "health data", "a health data and analytics conference", "健康数据分析大会"],
+    research: ["健康研究", "health research", "a population health research symposium", "人口健康研究研讨会"],
+    clinical: ["临床研究", "clinical research", "a clinical trials industry conference", "临床试验行业大会"],
+    policy: ["卫生政策", "health policy and public health", "a public health forum", "公共卫生论坛"],
+    tech: ["健康科技", "health tech", "a digital health conference", "数字健康大会"],
+    services: ["医疗服务管理", "health services", "a health workforce and services event", "医疗服务行业活动"]
+  };
+  // [title, 中文, field, orgKey, tasks, skills, earlier roles, degrees, certs, wins, role they'd hire]
+  const ROLES = [
+    ["Clinical Data Analyst", "临床数据分析师", "data", "hospital", ["Epic 报表和 Power BI 看板", "处理医生的数据需求，写 SQL", "向卫生部报送数据", "急诊和手术室数据质量检查"], ["SQL Server", "Power BI", "SSRS", "Epic Clarity", "Excel"], ["Graduate Data Analyst", "Data Officer", "Health Information Officer", "Research Assistant"], ["Master of Public Health", "Master of Health Informatics", "Master of Data Science", "Bachelor of Biomedical Science"], ["Microsoft Power BI Data Analyst certification"], ["our new ED wait-time dashboard is live across all campuses", "we cut monthly reporting from 3 days to 4 hours"], "Data Analyst"],
+    ["Health Data Engineer", "健康数据工程师", "data", "gov", ["用 Azure Databricks 搭数据管道", "把老旧 SQL Server 数仓迁到云上", "给报表团队做数据建模"], ["Python", "Azure Databricks", "SQL", "dbt", "Data modelling"], ["Data Analyst", "BI Developer", "Software Engineer"], ["Master of Data Science", "Bachelor of Computer Science", "Master of Information Technology"], ["Databricks Data Engineer Associate certification", "Azure Data Engineer certification"], ["we finally retired our 15-year-old data warehouse", "our new data platform passed its first audit"], "Data Engineer"],
+    ["BI Developer", "BI 开发", "data", "insurer", ["Power BI 报表和语义模型", "和业务部门梳理指标", "维护 SSIS 数据流程"], ["Power BI", "DAX", "SQL", "SSIS", "Stakeholder management"], ["Reporting Analyst", "Data Analyst", "IT Support Officer"], ["Bachelor of Information Systems", "Master of Business Analytics", "Bachelor of Commerce"], ["Microsoft Power BI Data Analyst certification"], ["we launched a self-service reporting portal for 300 staff"], "BI Developer"],
+    ["Data Scientist", "数据科学家", "data", "insurer", ["理赔数据建模", "会员流失预测", "A/B 测试分析"], ["Python", "SQL", "Machine learning", "Tableau", "Experiment design"], ["Data Analyst", "Research Assistant", "Actuarial Analyst"], ["Master of Data Science", "Master of Statistics", "Bachelor of Mathematics"], ["AWS Machine Learning certification"], ["our churn model went into production this week"], "Data Analyst"],
+    ["Research Assistant", "研究助理", "research", "uni", ["系统综述的筛选和数据提取", "用 R 和 Stata 清洗队列数据", "协调参与者问卷"], ["R", "Stata", "REDCap", "Covidence", "Systematic reviews"], ["Research Volunteer", "Casual Tutor", "Research Intern", "Clinical Trial Assistant"], ["Master of Epidemiology", "Master of Public Health", "Bachelor of Health Science", "Bachelor of Psychology"], ["a short course in meta-analysis"], ["our scoping review on digital health interventions is published", "our cohort study just reached 5,000 participants"], "Research Assistant", 1],
+    ["Research Fellow (Biostatistics)", "生物统计研究员", "research", "uni", ["临床试验统计分析", "带硕士生", "写科研经费申请"], ["R", "Stata", "Causal inference", "Mixed models", "Grant writing"], ["Biostatistician", "PhD Candidate", "Research Assistant"], ["PhD (Biostatistics)", "Master of Biostatistics", "Bachelor of Science (Mathematics)"], [], ["our trial results are out in a major medical journal", "we were awarded an NHMRC Ideas Grant"], "Research Assistant", 1],
+    ["Epidemiologist", "流行病学家", "policy", "gov", ["传染病监测报告", "支持疫情调查", "分析法定传染病数据"], ["R", "SAS", "Surveillance", "GIS", "Epidemiology"], ["Surveillance Officer", "Research Assistant", "Public Health Officer"], ["Master of Epidemiology", "Master of Public Health", "Bachelor of Science"], ["a field epidemiology short course"], ["our respiratory surveillance dashboard is now public"], "Surveillance Officer"],
+    ["Clinical Trial Assistant", "临床试验助理", "clinical", "trials", ["维护研究文件夹", "处理实验室样本盒", "安排参与者访视", "往 EDC 里录数据"], ["ICH-GCP", "REDCap", "Excel", "Medidata Rave"], ["Pharmacy Assistant", "Lab Assistant", "Medical Receptionist", "Research Volunteer"], ["Bachelor of Biomedical Science", "Bachelor of Science", "Bachelor of Pharmacy"], ["ICH-GCP certification"], ["our unit hit its recruitment target three months early"], "Clinical Trial Assistant", 1],
+    ["Clinical Trial Coordinator", "临床试验协调员", "clinical", "trials", ["患者筛选和招募", "CRF/EDC 和伦理申请", "对接申办方监查访视"], ["ICH-GCP", "REDCap", "Ethics submissions", "Patient recruitment"], ["Clinical Trial Assistant", "Registered Nurse", "Research Assistant"], ["Bachelor of Biomedical Science", "Bachelor of Nursing", "Bachelor of Science"], ["an ICH-GCP refresher", "Certified Clinical Research Coordinator certification"], ["we opened our first phase 1 oncology trial"], "Clinical Trial Assistant"],
+    ["Clinical Research Associate", "临床监查员（CRA）", "clinical", "cro", ["各研究中心的现场监查", "源数据核查", "写监查报告"], ["Site monitoring", "Source data verification", "ICH-GCP", "Veeva Vault"], ["Clinical Trial Coordinator", "In-house CRA", "Clinical Trial Assistant"], ["Bachelor of Science (Pharmacology)", "Bachelor of Biomedical Science", "Bachelor of Nursing"], ["Certified Clinical Research Associate certification"], ["we closed out a 40-site rare disease study"], "In-house CRA"],
+    ["Policy Officer", "政策官员", "policy", "gov", ["写部长简报", "利益相关方咨询", "用医疗服务数据支持政策分析"], ["Policy analysis", "Briefing writing", "Stakeholder engagement", "Excel"], ["Graduate (Victorian Public Service)", "Research Officer", "Advocacy Officer"], ["Master of Public Policy", "Master of Public Health", "Bachelor of Arts"], [], ["our mental health workforce strategy was released today"], "Policy Officer"],
+    ["Health Economist", "卫生经济学家", "policy", "consult", ["药物和项目的成本效益分析", "给政府客户做评估", "建经济模型"], ["Cost-effectiveness analysis", "Excel modelling", "R", "TreeAge", "Report writing"], ["Consultant", "Research Assistant", "Graduate Economist"], ["Master of Health Economics", "Bachelor of Economics", "Bachelor of Commerce"], ["a health technology assessment course"], ["our evaluation of a statewide prevention program was published"], "Consultant"],
+    ["Clinical Informatics Specialist", "临床信息化专员", "tech", "hospital", ["电子病历上线和优化", "培训医护人员", "梳理临床流程"], ["Clinical workflows", "EMR implementation", "Change management", "Clinician training"], ["Registered Nurse", "Pharmacist", "Clinical Nurse Specialist"], ["Bachelor of Nursing", "Bachelor of Pharmacy", "Graduate Certificate in Health Informatics"], ["a Certified Health Informatician Australasia credential"], ["go-live is done and medication errors on the pilot ward are down"], "Clinical Informatics Officer"],
+    ["Quality & Safety Project Officer", "质量与安全项目官员", "services", "hospital", ["分析不良事件数据", "推进改进项目", "准备认证检查"], ["Quality improvement", "Incident analysis", "Project management", "Excel"], ["Registered Nurse", "Administration Officer", "Allied Health Assistant"], ["Master of Health Administration", "Bachelor of Nursing", "Bachelor of Health Science"], ["a Lean Six Sigma Green Belt"], ["we passed accreditation with zero recommendations"], "Project Officer"],
+    ["Product Manager", "产品经理", "tech", "startup", ["规划产品路线图", "访谈医生和患者", "和工程师一起迭代"], ["Product management", "User research", "Roadmapping", "Agile"], ["Business Analyst", "Software Engineer", "Physiotherapist"], ["Bachelor of Software Engineering", "Master of Business Administration", "Bachelor of Physiotherapy"], ["a product management certification"], ["we just signed our 10th regional health service"], "Product Analyst"],
+    ["Recruitment Consultant", "招聘顾问", "services", "agency", ["给医疗机构招分析和信息化岗位", "辅导候选人", "做薪资调研"], ["Recruitment", "Health sector", "Salary benchmarking", "Candidate coaching"], ["HR Coordinator", "Recruitment Coordinator", "Hospitality Manager"], ["Bachelor of Business (HR)", "Bachelor of Arts", "Bachelor of Psychology"], [], ["we placed 30 analysts into Victorian health services this year"], "Recruitment Coordinator"],
+    ["Operations Manager", "运营经理", "services", "community", ["排班和人力", "管理候诊名单", "用报表做运营决策"], ["Operations", "Rostering", "Waitlist management", "Stakeholder engagement"], ["Team Leader", "Intake Officer", "Administration Officer"], ["Graduate Certificate in Health Management", "Diploma of Business", "Bachelor of Social Work"], [], ["our average waitlist time dropped by 3 weeks"], "Service Coordinator"],
+    ["Program Coordinator", "项目协调员", "services", "ngo", ["管理社区健康项目", "写资助报告", "收集和汇报项目数据"], ["Program management", "Grant reporting", "Community engagement", "Excel"], ["Community Health Worker", "Project Officer", "Volunteer Coordinator"], ["Master of Public Health", "Bachelor of Health Promotion", "Bachelor of Social Work"], [], ["our diabetes prevention program just reached its 1,000th participant"], "Project Officer", 1]
+  ];
+  const ORIGINS = [
+    { id: "local", zh: "在墨尔本长大", en: "Grew up in Melbourne's suburbs.", school: ["墨尔本一所大学", "a Melbourne university"] },
+    { id: "regional", zh: "在维州乡下长大，读大学时才搬到墨尔本", en: "Grew up in regional Victoria and moved to Melbourne for uni.", school: ["墨尔本一所大学", "a Melbourne university"] },
+    { id: "interstate", zh: "几年前从悉尼搬来墨尔本", en: "Moved from Sydney to Melbourne a few years ago.", school: ["悉尼一所大学", "a Sydney university"] },
+    { id: "uk", zh: "从英国移民过来，之前在 NHS 工作", en: "Migrated from the UK; worked in the NHS before.", school: ["英国一所大学", "a UK university"], prevOrg: ["英国 NHS 的一家医院", "an NHS trust in the UK"] },
+    { id: "cn", zh: "中国留学生出身，硕士在墨尔本读，找了大半年工作", en: "Came from China as an international student, did a Master's in Melbourne and job-hunted for most of a year.", school: ["中国一所大学", "a university in China"], master: true, surnames: ["Zhang", "Li", "Wang", "Chen", "Liu", "Zhao", "Huang", "Wu", "Lin", "Xu"], firsts: ["Lina", "Kevin", "Yuki", "Jason", "Amy", "Leo", "Iris", "Ray", "Jenny", "Eric"] },
+    { id: "in", zh: "印度留学生出身，硕士在墨尔本读", en: "Came from India as an international student and did a Master's in Melbourne.", school: ["印度一所大学", "a university in India"], master: true, surnames: ["Sharma", "Patel", "Iyer", "Reddy", "Singh", "Nair", "Gupta", "Menon"], firsts: ["Priya", "Arjun", "Ananya", "Rohan", "Kavya", "Vikram", "Neha", "Aditya"] },
+    { id: "ph", zh: "从菲律宾来，之前在马尼拉做护士", en: "Came from the Philippines; was a nurse in Manila before.", school: ["菲律宾一所大学", "a university in the Philippines"], prevOrg: ["马尼拉一家医院", "a hospital in Manila"], surnames: ["Santos", "Reyes", "Cruz", "Garcia", "Bautista"], firsts: ["Maria", "Joshua", "Angelica", "Mark", "Bea"] },
+    { id: "changer", zh: "30 岁左右转行，以前做过别的工作", en: "Changed careers around 30 after working in a completely different field.", school: ["墨尔本一所大学", "a Melbourne university"], oldJob: [["High School Teacher", "一所中学"], ["Restaurant Manager", "一家餐厅"], ["Civil Engineer", "一家工程公司"], ["Retail Store Manager", "一家连锁零售店"], ["Journalist", "一家地方报社"]] }
+  ];
+  const FIRSTS = ["Emma", "Jack", "Olivia", "Liam", "Sophie", "Noah", "Chloe", "Ethan", "Grace", "Lucas", "Zoe", "Ben", "Hannah", "Sam", "Isabella", "Tom", "Ruby", "Daniel", "Mia", "Josh", "Hamish", "Georgia", "Fatima", "Omar", "Mei", "Thanh", "Aisha", "Nick", "Elena", "Marco"];
+  const SURNAMES = ["Smith", "Nguyen", "Brown", "Wilson", "Taylor", "Murphy", "Kelly", "Walsh", "Anderson", "Thompson", "Papadopoulos", "Rossi", "O'Connor", "Campbell", "Tran", "Ahmed", "Kowalski", "Bennett", "Fraser", "Lee"];
+  const STYLES = [
+    ["说话干脆，句子短，偶尔冷幽默", "Speaks in short, clipped sentences with dry humour."],
+    ["满口澳洲口语（reckon、heaps、arvo、no worries）", "Uses lots of Australian slang: reckon, heaps, arvo, no worries, keen."],
+    ["想清楚再说，常说 \"that's a good question\" 然后停顿", "Thoughtful; often says \"hmm, that's a good question\" and pauses before answering."],
+    ["语速快，想法一个接一个跳", "Talks fast and jumps between ideas, sometimes forgets the original question."],
+    ["很精确，会纠正小细节", "Very precise; gently corrects small inaccuracies."],
+    ["爱讲故事，喜欢用具体例子", "A storyteller; answers with specific anecdotes from work."],
+    ["喜欢自嘲", "Self-deprecating; makes little jokes at their own expense."],
+    ["偏正式、很有礼貌", "Slightly formal and very polite."],
+    ["会反问你很多问题", "Curious; turns questions back on the other person a lot."],
+    ["说话温和，常鼓励人", "Gentle and encouraging; says things like \"you're on the right track\"."]
+  ];
+  const LIFE = [
+    ["家里有个 2 岁的孩子，最近睡不好", "Has a two-year-old at home and hasn't slept properly in months."],
+    ["在准备墨尔本马拉松", "Training for the Melbourne Marathon."],
+    ["正在翻新刚买的老房子", "Renovating an old house they just bought."],
+    ["周末在当地澳式足球俱乐部做志愿者", "Volunteers at a local footy club on weekends."],
+    ["刚从日本旅行回来", "Just got back from a trip to Japan."],
+    ["在学中文", "Learning Mandarin in the evenings."],
+    ["养了一只很闹的狗", "Has a very energetic dog."],
+    ["沉迷做酸面包", "Obsessed with baking sourdough."],
+    ["在乐队里打鼓", "Plays drums in a band."],
+    ["每天骑车通勤", "Cycles to work every day."],
+    ["喜欢在周末去 Yarra Valley 徒步", "Loves weekend hikes in the Yarra Ranges."],
+    ["刚搬到墨尔本北区", "Recently moved to Melbourne's inner north."]
+  ];
+  const CONCERNS = [
+    ["团队正在重组，有点焦虑", "Their team is being restructured and they're a bit anxious about it."],
+    ["合同还有 3 个月到期，不确定会不会续", "Their contract ends in three months and renewal isn't certain."],
+    ["系统迁移压力大，最近经常加班", "A big system migration means lots of overtime lately."],
+    ["在考虑要不要读博", "Torn about whether to start a PhD."],
+    ["刚升职，在学怎么带人", "Recently promoted and learning to manage people."],
+    ["单位冻结招聘，团队人手不够", "There's a hiring freeze and the team is stretched."],
+    ["在想要不要换去私营部门", "Wondering whether to move to the private sector."],
+    ["想找人帮忙看一个小项目的数据，但没人有空", "Has a side project that needs some data help but nobody has time."],
+    ["在准备一个大会演讲，有点紧张", "Preparing a conference talk and feeling nervous about it."],
+    ["想多认识有国际背景的同事，团队太单一", "Wants their team to be more diverse and is thinking about how to hire differently."]
+  ];
+  const WHEN = ["3 天前", "1 周前", "2 周前", "3 周前", "1 个月前", "2 个月前"];
+  const COMMENT_TOPICS = [["graduate programs", "graduate 项目", "Graduate programs are such a good way in. Wish more health services ran them."], ["AI in healthcare", "医疗 AI", "Agree. The hard part isn't the model, it's getting clean data and clinician trust."], ["imposter syndrome at work", "职场冒充者综合征", "Five years in and I still feel this sometimes. Thanks for sharing."], ["the health workforce shortage", "医疗人力短缺", "Seeing this every day. Rostering has never been harder."], ["mentoring early-career people", "带新人", "Some of my best career moves came from a 20-minute coffee with someone more senior."]];
+
+  // How you found / met them. type: online | offline. mode: planned (a coffee was arranged) | spont (talking right there).
+  const CHANNELS = [
+    { type: "online", mode: "planned", via: "LinkedIn 搜索", how: (P) => P.alum ? "在 LinkedIn 搜 \"" + P.title + "\" + Melbourne，用学校筛选发现 Ta 是你的校友，又看到 Ta 最近" + P.topic[0] + "。" : "在 LinkedIn 搜 \"" + P.title + "\" + Melbourne，筛二度人脉找到 Ta，看到 Ta 最近" + P.topic[0] + "。",
+      msg: (P) => "Hi " + P.first + ", " + (P.alum ? "I noticed we went to the same uni! " : "") + "I'm exploring " + P.fieldEn + " roles in Melbourne and saw your post about " + P.topic[1] + ". Would you be open to a 15–20 minute coffee sometime? Totally understand if you're busy." },
+    { type: "online", mode: "planned", via: "LinkedIn 帖子留言", how: (P) => "Ta 最近" + P.topic[0] + "，你在帖子下面留言，然后私信了 Ta。",
+      msg: (P) => "Hi " + P.first + ", I left a comment on your post about " + P.topic[1] + ". It really resonated. I'm early in my career in " + P.fieldEn + " and would love to hear how you got to where you are. Would you have 15 minutes for a coffee or a call? No pressure at all." },
+    { type: "online", mode: "planned", via: "LinkedIn 群组", how: (P) => "在 LinkedIn 一个" + P.fieldZh + "从业者群组里看到 Ta 的评论，点进主页发现 Ta 最近" + P.topic[0] + "。",
+      msg: (P) => "Hi " + P.first + ", I saw your comment in the " + P.fieldEn + " group and really liked your take. I'm trying to break into the field in Melbourne. Would you be up for a quick coffee sometime? Happy to work around your schedule." },
+    { type: "online", mode: "planned", via: "单位官网 + 邮件", how: (P) => "在 Ta 单位官网的团队页面看到 Ta 的介绍，找到工作邮箱发了邮件。",
+      msg: (P) => "Dear " + P.full + ", I came across your profile on your team's page and was really interested in " + P.task + ". I'm a recent graduate hoping to work in " + P.fieldEn + ". Would you be willing to meet for 20 minutes? I'd be grateful for any advice." },
+    { type: "online", mode: "planned", via: "校友微信群", how: (P) => "在墨尔本一个校友微信群里，有人转发了 Ta 的帖子，你通过群友拿到了 Ta 的 LinkedIn。",
+      msg: (P) => "Hi " + P.first + ", I got your LinkedIn through a friend in our alumni group, hope that's okay! I'm job-hunting in " + P.fieldEn + " and would really appreciate hearing about your experience. Could I buy you a coffee sometime?" },
+    { type: "online", mode: "planned", via: "线上讲座 Q&A", how: (P) => "你参加了一个关于" + P.fieldZh + "的线上讲座，Ta 是嘉宾之一。你在 Q&A 提了问题，会后在 LinkedIn 联系了 Ta。",
+      msg: (P) => "Hi " + P.first + ", I asked a question at yesterday's webinar. Thanks for such a thoughtful answer! I'd love to hear a bit more about your path into " + P.fieldEn + ". Would you be open to a short coffee chat?" },
+    { type: "online", mode: "planned", via: "线上社区", how: (P) => "你们都在一个" + P.fieldZh + "从业者的 Slack 社区里，Ta 回答过你的一个问题。",
+      msg: (P) => "Hi " + P.first + ", thanks again for helping with my question in the Slack community! I'm in Melbourne too and would love to buy you a coffee to say thanks and hear more about your work." },
+    { type: "offline", mode: "planned", via: "Meetup 分享后", how: (P) => "你去了一个" + P.fieldZh + "相关的 meetup，Ta 是分享嘉宾。会后你上前打招呼、交换了 LinkedIn，后来约了这次咖啡。",
+      msg: (P) => "Hi " + P.first + ", great to meet you after your talk on Tuesday! I'd love to continue our chat. Would you be up for a coffee sometime in the next couple of weeks?" },
+    { type: "offline", mode: "planned", via: "招聘会", how: (P) => "大学招聘会上 Ta 在单位展位值班，你们聊了几分钟，Ta 给了你名片，你随后发邮件约了咖啡。",
+      msg: (P) => "Hi " + P.first + ", we chatted briefly at the careers fair on Wednesday. Thank you for your time! I'd love to hear more about your role if you'd be open to a coffee." },
+    { type: "offline", mode: "planned", via: "客座讲座", how: (P) => "Ta 来你的课上做过一次客座讲座，课后你上前道谢，后来发消息约了咖啡。",
+      msg: (P) => "Hi " + P.first + ", thanks again for the guest lecture last week. The part about your day-to-day work was eye-opening. Would you have time for a quick coffee? I'd love to ask a few more questions." },
+    { type: "offline", mode: "planned", via: "志愿活动", how: (P) => "你们在一次社区健康志愿活动中认识，当时聊得不错，后来约了咖啡。",
+      msg: (P) => "Hey " + P.first + ", it was great volunteering with you on Saturday! You mentioned you work in " + P.fieldEn + ". Would you be up for a coffee sometime? I'd love to hear more." },
+    { type: "offline", mode: "planned", via: "朋友介绍", how: (P) => "Ta 是你朋友的同事，朋友在一次聚会上介绍你们认识，之后你们约了咖啡。",
+      msg: (P) => "Hi " + P.first + ", it was lovely meeting you at Sam's place! Thanks for offering to chat. When would suit you for a coffee?" },
+    { type: "offline", mode: "spont", via: "会议茶歇偶遇", how: (P) => "在" + P.eventZh + "的茶歇时间，Ta 一个人拿着咖啡。你没有提前联系，直接上前搭话。", act: "looks up from phone",
+      setting: (P) => "The coffee break at " + P.eventEn + " in Melbourne. The job seeker has just walked up to you; you've never met. You were holding a coffee and about to check your phone." },
+    { type: "offline", mode: "spont", via: "招聘会展位", how: (P) => "大学招聘会上，Ta 在单位展位值班，你直接走过去开口。", act: "smiles, holding a stack of brochures",
+      setting: (P) => "You're staffing your organisation's stall at a university careers fair. A graduate has just walked up. Other students drift past now and then." },
+    { type: "offline", mode: "spont", via: "朋友家 BBQ", how: (P) => "在朋友家的 BBQ 上，朋友说 Ta 在" + P.fieldZh + "领域工作，你过去打了招呼。", act: "holding a sausage in bread",
+      setting: (P) => "A friend's backyard BBQ on a Saturday afternoon. A mutual friend mentioned the job seeker works towards your field; they've just come over to you. Very casual, kids running around." },
+    { type: "offline", mode: "spont", via: "Networking 酒会", how: (P) => "一个" + P.fieldZh + " meetup 结束后的 networking 酒会，Ta 站在角落，你走过去搭话。", act: "turns around with a drink",
+      setting: (P) => "Networking drinks after a " + P.fieldEn + " meetup in a bar. It's a bit loud. The job seeker has just come up to you; you've never met." },
+    { type: "offline", mode: "spont", via: "跑步俱乐部", how: (P) => "周六跑步俱乐部跑完后在咖啡馆，你听说 Ta 在" + P.fieldZh + "领域工作，坐过去聊了起来。", act: "still catching breath, sipping a flat white",
+      setting: (P) => "The café after a Saturday morning running club. The job seeker, a runner you've seen around but never really talked to, just sat down next to you." }
+  ];
+  const OPENERS = {
+    warm: ["Hi! So lovely to finally meet you. I grabbed us a table by the window!", "Hey! Come sit, come sit. I'm so glad you reached out."],
+    friendly: ["Hi! Sorry, the coffee line was ridiculous. Nice to meet you.", "Hey, good to meet you! Did you find the place okay?"],
+    busy: ["Hi, sorry, I've only just got out of a meeting. Nice to meet you.", "Hello! Bit of a crazy day, but happy to chat."],
+    reserved: ["Hello. Nice to meet you.", "Hi. So... what did you want to chat about?"],
+    cold: ["Hi.", "Hey. Sorry, remind me how we're connected again?"],
+    chatty: ["Hi! Oh my god, the traffic on Hoddle Street this morning, you would not believe it. Anyway, hi!", "Hey! I love this café, I come here way too often. How's your week been?"]
+  };
+  const SPONT_OPENERS = ["Oh — hi.", "Hi there.", "Oh, hey."];
+
+  function activityFor(x) {
+    const items = [];
+    if (x.yearsInRole <= 1) items.push({ text: "Starting a new position as " + x.title + (x.orgEn ? " at " + x.orgEn : "") + ".", topic: ["开始了新工作", "starting your new role"], kind: "milestone" });
+    else items.push({ text: "Celebrating " + x.yearsInRole + " years " + (x.orgEn ? "at " + x.orgEn : "in my role") + "! Grateful for this team.", topic: ["庆祝入职 " + x.yearsInRole + " 周年", "your work anniversary"], kind: "milestone" });
+    if (x.certs && x.certs.length) { const c = pick(x.certs); items.push({ text: "Happy to share that I've completed " + c + ".", topic: ["考了 " + c, "completing " + c] }); }
+    if (x.wins && x.wins.length) { const w = pick(x.wins); items.push({ text: "Proud of the team: " + w + ".", topic: ["分享团队成果：" + w, "your team's news that " + w] }); }
+    items.push({ text: "Spent two days at " + x.eventEn + ". My three takeaways: data quality matters more than ever, clinicians want simpler tools, and we need more people who can bridge the two.", topic: ["分享了参加" + x.eventZh + "的心得", "your takeaways from " + x.eventEn] });
+    if (x.hire) items.push({ text: "Reposted: \"We're hiring a " + x.hire + ". Feel free to DM me with questions.\"", topic: ["转发了团队招 " + x.hire + " 的岗位", "your team hiring a " + x.hire] });
+    const ct = pick(COMMENT_TOPICS);
+    items.push({ text: "Commented on a post about " + ct[0] + ": \"" + ct[2] + "\"", topic: ["评论了一条关于" + ct[1] + "的帖子", "your comment on " + ct[0]] });
+    const chosen = [items[0]].concat(pickN(items.slice(1), rint(1, 2))).sort(() => Math.random() - 0.5);
+    const whens = pickN(WHEN, chosen.length).sort((a, b) => WHEN.indexOf(a) - WHEN.indexOf(b));
+    return chosen.map((it, i) => ({ when: whens[i], text: it.text, topic: it.topic, kind: it.kind || "post", likes: rint(6, 240) }));
+  }
+
+  function pickChannel(filter) {
+    const pool = CHANNELS.filter((c) => filter === "any" || c.type === filter);
+    return pick(pool);
+  }
+  function buildFound(x, filter) {
+    const ch = pickChannel(filter);
+    const P = { first: x.name, full: x.full, title: x.title, fieldZh: x.fieldZh, fieldEn: x.fieldEn, eventEn: x.eventEn, eventZh: x.eventZh, task: "your work as " + (/^[AEIOU]/.test(x.title) ? "an " : "a ") + x.title, alum: !!x.melbUni, topic: (x.activity.find((a) => a.kind !== "milestone") || x.activity[0]).topic };
+    return { type: ch.type, mode: ch.mode, via: ch.via, how: ch.how(P), msg: ch.msg ? ch.msg(P) : "", act: ch.act || "", setting: ch.setting ? ch.setting(P) : "" };
+  }
+  function hooksFor(x) {
+    const h = x.activity.filter((a) => a.kind !== "milestone").slice(0, 2).concat(x.activity.filter((a) => a.kind === "milestone")).slice(0, 2).map((a) => "Ta 最近" + a.topic[0]);
+    if (x.found.mode === "spont") h.push("现场的环境（活动、食物、天气）就是最自然的开场话题");
+    else if (x.found.msg) h.push("你在联系消息里提到的内容");
+    return h;
+  }
+  function periodStr(a, b) { return a + " – " + (b >= NOW ? "至今" : b); }
+
+  function generatePerson(filter) {
+    const r = ROLES[rint(0, ROLES.length - 1)];
+    const [title0, titleZh, fieldKey, orgKey, tasks, skills, prevs, degrees, certs, wins, hire, noPrefix] = r;
+    const origin = pick(ORIGINS);
+    const first = origin.firsts && Math.random() < 0.8 ? pick(origin.firsts) : pick(FIRSTS);
+    const last = origin.surnames && Math.random() < 0.85 ? pick(origin.surnames) : pick(SURNAMES);
+    const years = rint(1, 16);
+    const prefix = noPrefix ? "" : years >= 11 ? "Lead " : years >= 6 ? "Senior " : "";
+    const title = prefix + title0;
+    const org = pick(ORG[orgKey]);
+    const yearsInRole = Math.min(years, rint(1, 4));
+    const fld = FIELD[fieldKey];
+    // Experience, newest first
+    const exp = [[title, org[0], periodStr(NOW - yearsInRole, NOW), pickN(tasks, 2).join("；")]];
+    let cursor = NOW - yearsInRole, left = years - yearsInRole;
+    const prevPool = pickN(prevs, prevs.length);
+    while (left > 0 && exp.length < 4) {
+      const span = Math.min(left, rint(1, 4));
+      const oldest = left - span <= 0;
+      const prevOrg = origin.prevOrg && oldest ? origin.prevOrg : pick(ORG[Math.random() < 0.5 ? orgKey : pick(Object.keys(ORG))]);
+      exp.push([prevPool[(exp.length - 1) % prevPool.length], prevOrg[0], periodStr(cursor - span, cursor), ""]);
+      cursor -= span; left -= span;
+    }
+    if (origin.oldJob) { const oj = pick(origin.oldJob); exp.push([oj[0], oj[1], periodStr(cursor - rint(4, 8), cursor), "转行前的工作"]); cursor -= 6; }
+    // Education
+    const gradYear = cursor - rint(0, 1);
+    const deg = pick(degrees);
+    const edu = [];
+    let melbUni = false;
+    if (origin.master || /^Master|^PhD/.test(deg)) {
+      const mDeg = /^Master|^PhD/.test(deg) ? deg : "Master of " + pick(["Public Health", "Data Science", "Health Informatics", "Epidemiology"]);
+      edu.push([mDeg, "墨尔本一所大学", (gradYear - 2) + " – " + gradYear]); melbUni = true;
+      edu.push([pick(["Bachelor of Science", "Bachelor of Nursing", "Bachelor of Statistics", "Bachelor of Pharmacy", "Bachelor of Engineering"]), origin.school[0], (gradYear - 7) + " – " + (gradYear - 3)]);
+    } else {
+      edu.push([deg, origin.school[0], (gradYear - 3) + " – " + gradYear]); melbUni = origin.school[0].startsWith("墨尔本");
+    }
+    const x = {
+      id: "gen", gen: true, name: first, full: first + " " + last, title, titleZh: (prefix ? { "Lead ": "主管级", "Senior ": "高级" }[prefix] : "") + titleZh,
+      org: org[0], orgEn: org[1], fieldZh: fld[0], fieldEn: fld[1], eventEn: fld[2], eventZh: fld[3], yearsInRole, certs, wins, hire, taskEn: null, melbUni,
+      origin: origin.zh, originEn: origin.en, style: pick(STYLES), life: pick(LIFE), concern: pick(CONCERNS)
+    };
+    x.activity = activityFor(x);
+    x.profile = {
+      headline: title + " @ " + org[1].replace(/^(a|an|the) /, "") + " | " + pickN(skills, 3).join(" · "),
+      conn: years > 4 ? "500+" : String(rint(120, 480)),
+      about: years >= 6 ? "Working in " + fld[1] + " for " + years + " years. I care about doing work that actually helps patients and the people who look after them." : "Early in my " + fld[1] + " career and loving it. Always keen to learn from others and help people coming up behind me.",
+      exp, edu, skills: pickN(skills, Math.min(skills.length, 5))
+    };
+    x.zh = x.origin + "。在" + fld[0] + "领域工作约 " + years + " 年，现在在" + org[0] + "做" + x.titleZh + "。";
+    x.en = first + " " + last + ", " + title + " at " + org[1] + " in Melbourne, about " + years + " years in " + fld[1] + ". Day to day: " + tasks.join(", ") + ". Background: " + origin.en + " Career so far: " + exp.map((e) => e[0] + " (" + e[2].replace("至今", "now") + ")").join(", ") + ".";
+    x.found = buildFound(x, filter);
+    x.hooks = hooksFor(x);
+    return x;
+  }
+
+  function fromPreset(p, filter) {
+    const pr = PROFILES[p.id];
+    const fld = { cda: "data", ra: "research", ctc: "clinical", doh: "data", cra: "clinical", lead: "data", nurse: "tech", prof: "research", lina: "data", founder: "tech", recruiter: "services", ops: "services" }[p.id] || "data";
+    const F = FIELD[fld];
+    const x = {
+      id: p.id, gen: false, name: p.name, full: FULLNAMES[p.id] || p.name, title: p.title, titleZh: p.title, org: p.org, orgEn: p.org, presetOpen: p.open,
+      fieldZh: F[0], fieldEn: F[1], eventEn: F[2], eventZh: F[3], yearsInRole: rint(1, 4), melbUni: true, zh: p.zh, en: p.en,
+      style: pick(STYLES), life: pick(LIFE), concern: pick(CONCERNS)
+    };
+    const own = { when: "1 周前", text: pr.activity.replace(/^[^：]*：/, "").replace(/^"|"$/g, ""), topic: ["发帖：" + pr.activity.replace(/^[^：]*：/, "").replace(/^"|"$/g, "").slice(0, 36) + "…", "your recent post"], likes: rint(20, 300) };
+    const extra = activityFor({ ...x, title: pr.exp[0][0], orgEn: null, certs: [], wins: [], hire: null });
+    x.activity = [own].concat(extra.filter((a) => a.when !== own.when && a.kind !== "milestone")).slice(0, 3);
+    x.profile = { headline: pr.headline, conn: pr.conn, about: pr.about, exp: pr.exp, edu: pr.edu, skills: pr.skills };
+    x.found = buildFound(x, filter);
+    x.hooks = hooksFor(x);
+    return x;
+  }
+
+  const DURATIONS = [15, 20, 30];
+  const FOCUS = [
+    { id: "human", zh: "少点目的性，多点聊天感", en: "Sounding less transactional and more like a natural, curious human: listening, reacting, small talk, sharing a bit of themselves, asking for things only when the moment is right." },
+    { id: "overall", zh: "综合练习", en: "A well-rounded coffee chat: good opening, thoughtful questions, a graceful close with a next step." },
+    { id: "intro", zh: "自我介绍和开场", en: "Opening and self-introduction: sounding natural, concise, and giving the other person something to connect with." },
+    { id: "steer", zh: "自然转话题 / 接住冷场", en: "Steering topics smoothly, recovering from awkward silences, and handling tangents without being abrupt." },
+    { id: "close", zh: "收尾和要下一步", en: "Wrapping up on time and asking for a next step (keeping in touch, someone else to talk to) without sounding pushy." }
+  ];
+  const QBANK = [
+    { h: "开场 / 自我介绍", q: [
+      ["Thanks so much for making the time. I know you're busy.", "开场先道谢"],
+      ["I came across your profile because I'm really interested in health data roles in Melbourne.", "说明为什么约对方"] ] },
+    { h: "接住对方的话（少点目的性）", q: [
+      ["Oh wow, that sounds intense. How did you handle that?", "先回应对方刚说的，再追问"],
+      ["Ha, that's so relatable.", "对方开玩笑或吐槽时，先共鸣"],
+      ["Sorry, I've been asking a lot of questions. How's your week been, actually?", "发现自己问太多时，停下来关心对方"],
+      ["I had a similar moment when I first moved to Melbourne...", "分享一点自己，换对方也愿意多说"],
+      ["That's really interesting. Going back to what you said about ___, ...", "从跑题自然拉回来"] ] },
+    { h: "了解岗位", q: [
+      ["What does a typical week look like for you?", "日常工作是什么样"],
+      ["What's the part of the job you didn't expect before you started?", "入职后才发现的事"],
+      ["Who do you work with most closely day to day?", "和谁协作最多"] ] },
+    { h: "入行路径", q: [
+      ["How did you get your first role in this field?", "第一份工作怎么拿到的"],
+      ["If you were starting again in Melbourne today, what would you do differently?", "如果重来会怎么做"] ] },
+    { h: "技能与求职", q: [
+      ["Which skills made the biggest difference early on? Is it mostly SQL and Power BI, or something else?", "最关键的技能"],
+      ["Is a certificate like GCP worth getting before applying for trial assistant roles?", "证书值不值得先考"],
+      ["What do hiring managers on your team look for in entry-level candidates?", "招入门岗位看重什么"] ] },
+    { h: "收尾", q: [
+      ["Is there anything I could help you with? Happy to return the favour.", "问自己能帮什么"],
+      ["Is there anyone else you'd suggest I talk to?", "可以再联系谁"],
+      ["Would it be okay if I kept you posted on how things go?", "保持联系"] ] }
+  ];
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+  };
+  const fmtClock = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  const fmtDate = (iso) => { const d = new Date(iso); return d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) + " " + d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }); };
+  const personaById = (id) => PERSONAS.find((p) => p.id === id) || PERSONAS[0];
+  const diffById = (id) => DIFFICULTY.find((d) => d.id === id) || DIFFICULTY[0];
+
+  // ---------- Setup UI ----------
+  const personaSel = $("persona");
+  PERSONAS.forEach((p) => { const o = el("option", null, p.name + " · " + p.title); o.value = p.id; personaSel.appendChild(o); });
+  function seg(container, name, items, getLabel) {
+    items.forEach((it, i) => {
+      const lab = el("label");
+      const inp = document.createElement("input");
+      inp.type = "radio"; inp.name = name; inp.id = name + "-" + i; inp.value = String(it.id ?? it);
+      if (i === 0) inp.checked = true;
+      lab.append(inp, el("span", null, getLabel(it)));
+      container.appendChild(lab);
+    });
+  }
+  seg($("difficulty"), "difficulty", DIFFICULTY, (d) => d.zh);
+  seg($("duration"), "duration", DURATIONS, (m) => m + " 分钟");
+  const radio = (name) => document.querySelector('input[name="' + name + '"]:checked').value;
+
+  const focusSel = $("focus");
+  FOCUS.forEach((f) => { const o = el("option", null, f.zh); o.value = f.id; focusSel.appendChild(o); });
+  focusSel.value = store.get("cc.focus") || "human";
+  focusSel.addEventListener("change", () => store.set("cc.focus", focusSel.value));
+  const channelSel = $("channel");
+  channelSel.value = store.get("cc.channel") || "any";
+  channelSel.addEventListener("change", () => { store.set("cc.channel", channelSel.value); rerollFound(); });
+  { const o = el("option", null, "🎲 随机生成的人"); o.value = "gen"; personaSel.insertBefore(o, personaSel.firstChild); }
+
+  let cur = null;
+  function saveCur() { try { store.set("cc.cur", JSON.stringify(cur)); } catch {} }
+  function setCur(x) { cur = x; personaSel.value = x.gen ? "gen" : x.id; saveCur(); renderPersona(); }
+  function rerollFound() { if (!cur) return; cur.found = buildFound(cur, channelSel.value); cur.hooks = hooksFor(cur); saveCur(); renderPersona(); }
+  function randomTemperament() { const d = document.querySelectorAll('input[name="difficulty"]'); d[rint(0, d.length - 1)].checked = true; }
+
+  $("btn-random").addEventListener("click", () => { randomTemperament(); setCur(generatePerson(channelSel.value)); });
+  $("btn-reroll-found").addEventListener("click", rerollFound);
+  personaSel.addEventListener("change", () => {
+    const v = personaSel.value;
+    setCur(v === "gen" ? generatePerson(channelSel.value) : fromPreset(personaById(v), channelSel.value));
+  });
+  $("bg").value = store.get("cc.bg") || "";
+  $("bg").addEventListener("input", () => store.set("cc.bg", $("bg").value));
+
+  const FULLNAMES = { cda: "Priya Sharma", ra: "Tom Nguyen", ctc: "Mei Chen", doh: "James O'Brien", cra: "Sarah Mitchell", lead: "Daniel Kowalski", nurse: "Grace Murphy", prof: "Alan Hughes", lina: "Lina Zhao", founder: "Mark Ellis", recruiter: "Rachel Tan", ops: "Ben Walsh" };
+  const fullName = (p) => p.full || p.name;
+
+  function profileText(p) {
+    const pr = p.profile; if (!pr) return "";
+    const f = p.found || {};
+    return [
+      "Your LinkedIn headline: " + pr.headline,
+      "Your career: " + pr.exp.map((e) => e[0] + " at " + e[1] + " (" + e[2].replace("至今", "now") + ")").join("; "),
+      "Your education: " + pr.edu.map((e) => e[0] + ", " + e[1] + " (" + e[2] + ")").join("; "),
+      "Your recent LinkedIn activity (all work-related): " + (p.activity || []).map((a) => "[" + a.when + "] " + a.text).join(" | "),
+      "How the job seeker found you (written in Chinese): " + f.how,
+      f.msg ? "The message they sent you before this meeting: \"" + f.msg + "\"" : (f.mode === "spont" ? "They did not contact you beforehand; they are approaching you right now." : ""),
+      "YOUR WAY OF SPEAKING: " + (p.style ? p.style[1] : ""),
+      "LIFE OUTSIDE WORK (not on LinkedIn; only comes up if the conversation gets personal and friendly): " + (p.life ? p.life[1] : ""),
+      "ON YOUR MIND AT WORK LATELY (you might mention it if rapport is good; someone thoughtful might ask about it or offer help): " + (p.concern ? p.concern[1] : ""),
+      "If they mention something specific from your profile or recent posts, you notice they did their homework and warm up a little. If they ask things that are obviously on your profile, it feels lazy."
+    ].filter(Boolean).join("\n");
+  }
+
+  function renderPersona() {
+    const p = cur; if (!p) return;
+    const pr = p.profile;
+    const card = $("persona-card"); card.replaceChildren();
+    const top = el("div", "li-top");
+    top.append(el("div", "li-avatar", p.name[0]));
+    const id = el("div", "li-id");
+    id.append(el("strong", null, fullName(p)), el("span", "li-head", pr.headline), el("span", "muted", "Melbourne, Victoria, Australia · " + pr.conn + " connections"));
+    top.appendChild(id); card.appendChild(top);
+    card.appendChild(el("p", "li-zh", p.zh));
+    const sect = (title, open, fill) => { const d = el("details", "li-sec"); if (open) d.open = true; d.appendChild(el("summary", null, title)); const b = el("div"); fill(b); d.appendChild(b); card.appendChild(d); };
+    const f = p.found;
+    sect("你是怎么认识 Ta 的", true, (b) => {
+      const tags = el("div", "row");
+      tags.append(el("span", "chip " + (f.type === "online" ? "ok" : "no"), f.type === "online" ? "线上" : "线下"), el("span", "chip", f.mode === "spont" ? "当场偶遇，没提前约" : "约好的 coffee chat"), el("span", "chip", f.via));
+      b.append(tags, el("p", null, f.how));
+      if (f.msg) b.append(el("span", "label", "你发出的联系消息"), el("blockquote", "li-msg", f.msg));
+      else b.append(el("p", "muted", "没有提前联系，你要当场开口。先想好第一句话。"));
+      const ul = el("ul", "li-hooks"); p.hooks.forEach((h) => ul.appendChild(el("li", null, h)));
+      b.append(el("span", "label", "可以自然聊起的点"), ul);
+    });
+    sect("最近动态", true, (b) => (p.activity || []).forEach((a) => {
+      const r = el("div", "li-item"); r.append(el("span", "muted mono", a.when + " · 👍 " + a.likes), el("span", null, a.text)); b.appendChild(r);
+    }));
+    sect("About", false, (b) => b.appendChild(el("p", null, pr.about)));
+    sect("Experience", false, (b) => pr.exp.forEach(([role, org, when, desc]) => { const r = el("div", "li-item"); r.append(el("strong", null, role), el("span", null, org), el("span", "muted mono", when)); if (desc) r.append(el("span", "muted", desc)); b.appendChild(r); }));
+    sect("Education", false, (b) => pr.edu.forEach(([deg, sch, when]) => { const r = el("div", "li-item"); r.append(el("strong", null, deg), el("span", null, sch), el("span", "muted mono", when)); b.appendChild(r); }));
+    sect("Skills", false, (b) => { const w = el("div", "row"); pr.skills.forEach((s) => w.appendChild(el("span", "chip", s))); b.appendChild(w); });
+    sect("Ta 的私下状态（建议聊完再看）", false, (b) => {
+      [["说话风格", p.style && p.style[0]], ["工作之外", p.life && p.life[0]], ["最近在烦的事", p.concern && p.concern[0]]].forEach(([k, v]) => { if (v) { const r = el("p"); r.append(el("b", null, k + "："), document.createTextNode(v)); b.appendChild(r); } });
+      b.appendChild(el("p", "muted", "这些不在 LinkedIn 上。聊得好的时候对方可能会提到，听到「最近在烦的事」就是你能提供帮助、少点目的性的好机会。"));
+    });
+    card.appendChild(el("p", "credit", "人物和资料均为虚构，仅用于练习。"));
+    renderWho(p);
+  }
+  function renderWho(p) {
+    if (state.phase === "setup" || state.phase === "done") {
+      $("avatar").textContent = p.name[0];
+      $("who-name").textContent = fullName(p);
+      $("who-role").textContent = p.title + " · " + p.org;
+    }
+  }
+
+  // Question bank
+  const qb = $("qbank");
+  QBANK.forEach((g) => {
+    qb.appendChild(el("h3", null, g.h));
+    const ul = el("ul", "qlist");
+    g.q.forEach(([en, zh]) => {
+      const li = el("li"); const b = el("button", "use-q"); b.type = "button";
+      b.append(el("span", "en", en), document.createElement("br"), el("span", "zh", zh));
+      b.addEventListener("click", () => {
+        if (state.phase !== "chat") return;
+        const ta = $("input"); ta.value = (ta.value ? ta.value.trimEnd() + " " : "") + en; ta.focus();
+      });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    qb.appendChild(ul);
+  });
+
+  // ---------- State ----------
+  const state = { phase: "setup", turns: [], persona: null, diff: null, minutes: 20, startedAt: 0, timer: null, busy: false, ctrl: null, engagement: 50, lastThemAt: 0 };
+  const START_ENGAGEMENT = { warm: 70, friendly: 60, busy: 40, reserved: 35, cold: 25, chatty: 65 };
+  const OPEN_ACTION = { warm: "big smile, waves you over", friendly: "smiles, puts coffee down", busy: "checks watch, sits down", reserved: "shakes hands, sits back", cold: "nods briefly, stirs coffee", chatty: "already laughing, pulls out a chair" };
+
+  function setPhase(phase) {
+    state.phase = phase;
+    $("start-area").hidden = phase !== "setup";
+    $("input-area").hidden = phase !== "chat";
+    $("after-area").hidden = phase !== "done";
+    $("btn-end").hidden = phase !== "chat";
+    ["persona", "bg", "goal", "focus", "btn-random", "btn-reroll-found", "channel"].forEach((id) => $(id).disabled = phase === "chat" || phase === "review");
+    document.querySelectorAll('#setup input[type="radio"]').forEach((r) => r.disabled = phase === "chat" || phase === "review");
+  }
+  function notice(text) { const n = $("notice"); n.textContent = text || ""; n.hidden = !text; }
+
+  function renderEmpty() {
+    const m = $("msgs"); m.replaceChildren();
+    const box = el("div", "empty-chat");
+    box.append(el("h2", null, "左边选好对方，然后开始"),
+      el("p", null, "对方会先打招呼。你用英文聊，像真的坐在咖啡店里一样。时间到了记得主动收尾，然后点「结束并点评」。"),
+      el("p", null, "每次结束后会自动存进「练习记录」，可以回看对话和点评，看分数怎么变化。"));
+    m.appendChild(box);
+  }
+  function addMsg(role, text) {
+    const m = $("msgs");
+    if (m.querySelector(".empty-chat")) m.replaceChildren();
+    const b = el("div", "msg " + role, text);
+    m.appendChild(b); m.scrollTop = m.scrollHeight;
+    return b;
+  }
+
+  function tick() {
+    const ms = Date.now() - state.startedAt;
+    const c = $("clock"); c.textContent = fmtClock(ms) + " / " + state.minutes + ":00";
+    c.classList.toggle("over", ms > state.minutes * 60000);
+  }
+
+  // ---------- Claude ----------
+  // ---------- AI provider (your own API key, stored only on this device) ----------
+  const AI_DEFAULTS = { gemini: "gemini-flash-latest", claude: "claude-opus-5-5" };
+  const aiCfg = () => ({ provider: store.get("cc.ai.provider") || "gemini", key: (store.get("cc.ai.key") || "").trim(), model: (store.get("cc.ai.model") || "").trim() });
+  function extractJSON(text) {
+    const t = String(text || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    try { return JSON.parse(t); } catch {}
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+    throw { code: "invalid_json", text: t };
+  }
+  async function httpErr(res) {
+    let msg = "";
+    try { const j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || ""; } catch {}
+    let code = "upstream_error";
+    if (res.status === 429) code = "rate_limited";
+    else if (res.status === 401 || res.status === 403 || /api.?key/i.test(msg)) code = "bad_key";
+    else if (res.status === 404) code = "bad_model";
+    else if (res.status === 402 || /credit|billing|balance/i.test(msg)) code = "billing";
+    return { code, message: msg, status: res.status };
+  }
+  async function callGemini(cfg, prompt, signal, model) {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+      method: "POST", signal,
+      headers: { "content-type": "application/json", "x-goog-api-key": cfg.key },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.9 } })
+    });
+    if (!res.ok) throw await httpErr(res);
+    const j = await res.json();
+    const c = j.candidates && j.candidates[0];
+    if (!c || !c.content) throw { code: j.promptFeedback && j.promptFeedback.blockReason ? "refused" : "empty_completion" };
+    return (c.content.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+  }
+  async function callClaude(cfg, prompt, signal, model, effort) {
+    const fallback = /^claude-(opus-5|fable-5|sonnet-5-5)/.test(model);
+    const headers = { "content-type": "application/json", "x-api-key": cfg.key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
+    const body = { model, max_tokens: 16000, output_config: { effort }, messages: [{ role: "user", content: prompt }] };
+    if (fallback) { headers["anthropic-beta"] = "server-side-fallback-2026-07-01"; body.fallbacks = "default"; }
+    const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal, headers, body: JSON.stringify(body) });
+    if (!res.ok) throw await httpErr(res);
+    const j = await res.json();
+    if (j.stop_reason === "refusal") throw { code: "refused" };
+    return (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  }
+  const aiClient = {
+    async json(prompt, opts = {}) {
+      const cfg = aiCfg();
+      if (!cfg.key) throw { code: "no_key" };
+      const heavy = opts.modelTier === "complex";
+      try {
+        if (cfg.provider === "claude") {
+          return extractJSON(await callClaude(cfg, prompt + "\n\nReply with the JSON object only.", opts.signal, cfg.model || AI_DEFAULTS.claude, heavy ? "medium" : "low"));
+        }
+        const models = cfg.model ? [cfg.model] : [AI_DEFAULTS.gemini, "gemini-2.5-flash"];
+        let last;
+        for (const m of models) {
+          try { return extractJSON(await callGemini(cfg, prompt, opts.signal, m)); }
+          catch (e) { last = e; if (e.code !== "bad_model") throw e; }
+        }
+        throw last;
+      } catch (e) {
+        if (e && e.name === "AbortError") throw { code: "cancelled" };
+        if (e instanceof TypeError) throw { code: "network" };
+        throw e;
+      }
+    }
+  };
+  async function getSample() { return aiCfg().key ? aiClient : null; }
+
+  function errText(e) {
+    const code = e && e.code;
+    if (code === "no_key") return "还没设置 AI。请先在左边「⚙️ AI 设置」里填好 API key。";
+    if (code === "bad_key") return "API key 不对，或者还没开通。去「⚙️ AI 设置」里检查一下。";
+    if (code === "bad_model") return "找不到这个模型。去「⚙️ AI 设置」把模型那一栏清空，用默认的。";
+    if (code === "billing") return "AI 账户余额不足，需要去充值。";
+    if (code === "rate_limited") return "这一分钟的免费额度用完了，等一分钟再发。";
+    if (code === "network") return "连不上 AI 服务，检查一下网络。";
+    if (code === "refused") return "AI 没有回答这一句，换个说法再试试。";
+    if (code === "cancelled") return "";
+    return "AI 暂时没有回应（" + (code || "unknown") + "），请再试一次。";
+  }
+
+  function transcriptText(turns, meLabel, themLabel, withMeta) {
+    return turns.map((t) => {
+      if (t.r === "me") {
+        const meta = withMeta && t.lat != null ? "[replied after " + t.lat + "s, " + t.t.length + " chars] " : "";
+        return meLabel + ": " + meta + t.t;
+      }
+      const meta = withMeta && t.e != null ? " [engagement " + t.e + "/100]" : "";
+      return themLabel + ": " + (t.a ? "(" + t.a + ") " : "") + t.t + meta;
+    }).join("\n");
+  }
+
+  function replyPrompt() {
+    const p = state.persona, d = state.diff;
+    const elapsed = Math.round((Date.now() - state.startedAt) / 60000);
+    return [
+      "You are playing a real person in a face-to-face coffee chat, so a job seeker can practise networking in English. This must feel like talking to an actual human, not a chatbot. Never mention being an AI and never coach the job seeker inside the conversation.",
+      "",
+      "YOUR CHARACTER: " + p.en + " Your full name is " + fullName(p) + ".",
+      profileText(p),
+      "YOUR MOOD TODAY: " + d.en,
+      "SETTING: " + (p.found && p.found.mode === "spont" ? p.found.setting + " If it goes well this chance conversation might last about " + state.minutes + " minutes; you'll drift away politely if it feels like a pitch." : "A café in Melbourne, a coffee chat that was arranged in advance. Planned length: " + state.minutes + " minutes.") + " Elapsed: about " + elapsed + " minutes. Your engagement right now: " + state.engagement + "/100.",
+      "",
+      "WHAT THE JOB SEEKER IS PRACTISING: " + (FOCUS.find((f) => f.id === state.focus) || FOCUS[0]).en,
+      "",
+      "TRANSACTIONAL vs HUMAN (important): people can feel when they're being 'used'. You cool down (engagement drops, answers get shorter, a polite smile) when the job seeker: fires questions back to back like an interview, ignores what you just shared and jumps to their next question, steers every topic back to jobs/referrals/'how do I get in', opens with their ask before any rapport, or sounds like they're reading from a script. You warm up when they: react to what you said (\"oh that sounds intense\"), ask a follow-up that shows they listened, share a bit of themselves, laugh at your joke, show curiosity about you as a person, or are comfortable with a bit of small talk.",
+      "",
+      "BE HUMAN:",
+      "- Talk the way people actually talk: contractions, the odd \"yeah\", \"mm\", \"oh nice\", \"honestly\", half-finished thoughts, self-corrections. Not every reply needs a full answer.",
+      "- React to small things first, the way people do: a joke gets a laugh, a nervous apology gets reassurance, a compliment gets a slightly awkward thanks, a short \"mm-hmm\" from them means you keep going with your story.",
+      "- Match their energy and length. A one-word reply gets a short reply or you fill the gap. A long monologue makes you pick one thing to respond to, or wait politely to get a word in.",
+      "- Notice timing in the [replied after Ns] tags: a long pause might make you say \"no rush\" or move on yourself; instant answers to a big question can feel rehearsed.",
+      "- Lines in parentheses from them, e.g. (laughs) or (nods) or (stays quiet), are their body language. Respond to them like you saw it.",
+      "- Generic questions get generic answers. Specific, well-researched questions or genuine stories make you lean in and share more. Asking for a job or referral too early makes you a bit guarded.",
+      "- Your engagement moves gradually (usually -10 to +10 per turn). Let it show: higher means more detail, more warmth, questions back; lower means shorter answers, glancing at your phone, wrapping up.",
+      "- If time has passed the plan and they haven't wrapped up, start signalling you need to go. If they wrap up, close naturally.",
+      "",
+      "CONVERSATION SO FAR:",
+      transcriptText(state.turns, "Job seeker", p.name, true),
+      "",
+      "Return only a JSON object:",
+      '{"action": "your small visible reaction in English as you start speaking, a few words, e.g. \\"laughs\\", \\"nods slowly\\", \\"glances at phone\\", \\"leans in\\"; empty string if nothing notable", "speech": "what you say out loud (may be very short, e.g. \\"Ha, yeah.\\")", "engagement": integer 0-100, "reactionNote": "简体中文一句（不超过40字）：站在旁观教练角度，解释你这个反应和投入度变化背后的原因", "userNote": "简体中文一句（不超过40字）：点出求职者上一句里的一个细节（语气、措辞、时机、长短、肢体动作）做得好或不好；没有值得说的就空字符串"}'
+    ].join("\n");
+  }
+
+  function setMeter(v, prev) {
+    $("meter").hidden = false;
+    $("meter-fill").style.width = Math.max(3, v) + "%";
+    const dEl = $("meter-delta"), diff = prev == null ? 0 : v - prev;
+    dEl.textContent = diff ? (diff > 0 ? "+" : "") + diff : "";
+    dEl.className = "delta" + (diff > 0 ? " up" : diff < 0 ? " down" : "");
+  }
+
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  function reveal(node, text) {
+    return new Promise((resolve) => {
+      if (reduceMotion || !text) { node.textContent = text; resolve(); return; }
+      const step = Math.max(1, Math.ceil(text.length / 70)); let i = 0;
+      const id = setInterval(() => {
+        i = Math.min(text.length, i + step); node.textContent = text.slice(0, i);
+        $("msgs").scrollTop = $("msgs").scrollHeight;
+        if (i >= text.length) { clearInterval(id); resolve(); }
+      }, 28);
+    });
+  }
+
+  function addThem(turn, animate) {
+    const m = $("msgs");
+    if (m.querySelector(".empty-chat")) m.replaceChildren();
+    const g = el("div", "turn them");
+    if (turn.a) g.appendChild(el("span", "act", "(" + turn.a + ")"));
+    const b = el("div", "msg them"); g.appendChild(b);
+    if (tts.ok) { const sb = el("button", "say", "🔊 再听一遍"); sb.type = "button"; sb.addEventListener("click", () => speak(turn.t, true)); g.appendChild(sb); }
+    speak(turn.t);
+    const notes = [];
+    if (turn.u) notes.push(["你刚才", turn.u]);
+    if (turn.n) notes.push(["对方", turn.n]);
+    if (notes.length) { const nb = el("div", "note"); notes.forEach(([k, v]) => { const s = el("span"); s.append(el("b", null, k), document.createTextNode(v)); nb.appendChild(s); }); nb.hidden = animate; g.appendChild(nb); }
+    m.appendChild(g); m.scrollTop = m.scrollHeight;
+    if (!animate) { b.textContent = turn.t; return Promise.resolve(); }
+    return reveal(b, turn.t).then(() => { const nb = g.querySelector(".note"); if (nb) nb.hidden = false; m.scrollTop = m.scrollHeight; });
+  }
+
+  function addMe(text) {
+    const m = $("msgs");
+    const g = el("div", "turn me");
+    const b = el("div", "msg me" + (/^\(.*\)$/.test(text) ? " act-only" : ""), text);
+    g.appendChild(b); m.appendChild(g); m.scrollTop = m.scrollHeight;
+    return g;
+  }
+
+  // ---------- Read replies aloud (speechSynthesis; no microphone needed) ----------
+  const tts = { ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" };
+  function voiceFor(name) {
+    try {
+      const vs = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang));
+      if (!vs.length) return null;
+      const au = vs.filter((v) => /en-AU/i.test(v.lang));
+      const pool = au.length ? au.concat(vs.filter((v) => /en-GB/i.test(v.lang))) : vs;
+      let h = 0; for (const c of name || "") h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      return pool[h % pool.length];
+    } catch { return null; }
+  }
+  function speak(text, force) {
+    if (!tts.ok || (!force && !$("tts-toggle").checked) || !text) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/\([^)]*\)/g, ""));
+      const v = voiceFor(state.persona && state.persona.full);
+      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-AU";
+      const d = state.diff && state.diff.id;
+      u.rate = d === "busy" || d === "chatty" ? 1.08 : d === "reserved" || d === "cold" ? 0.92 : 1;
+      // While the other person is talking, block dictation from transcribing the speakers.
+      const ta = $("input"); ta.readOnly = true;
+      const release = () => { ta.readOnly = false; clearTimeout(tts.guard); const after = tts.after; tts.after = null; if (after) after(); };
+      clearTimeout(tts.guard); tts.guard = setTimeout(release, 30000);
+      u.onend = release; u.onerror = release;
+      speechSynthesis.speak(u);
+    } catch { $("input").readOnly = false; }
+  }
+
+  // ---------- Dictation helpers (system voice typing: Win+H / Mac Fn Fn / phone keyboard mic) ----------
+  {
+    const ua = navigator.userAgent || "";
+    const hint = /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "🎤 用说的：按两下 Fn 键（或 🌐 键）开始听写，说完点发送或按 Enter"
+      : /Windows/.test(ua) ? "🎤 用说的：按 Win + H 开始语音输入，说完点发送或按 Enter"
+      : "也可以用打字或键盘上的麦克风键 · Enter 发送";
+    $("dictation-hint").textContent = hint;
+    const auto = $("autosend-toggle");
+    auto.checked = store.get("cc.autosend") === "on";
+    auto.addEventListener("change", () => { store.set("cc.autosend", auto.checked ? "on" : "off"); $("input").focus(); });
+    let idle = null;
+    $("input").addEventListener("input", () => {
+      clearTimeout(idle);
+      if (!auto.checked) return;
+      idle = setTimeout(() => { if ($("input").value.trim() && !state.busy && state.phase === "chat" && !$("input").readOnly) send(); }, 2500);
+    });
+  }
+  if (!tts.ok) $("tts-wrap").hidden = true;
+  else { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch {} }
+  $("tts-toggle").checked = store.get("cc.tts") !== "off";
+  $("tts-toggle").addEventListener("change", () => { store.set("cc.tts", $("tts-toggle").checked ? "on" : "off"); if (!$("tts-toggle").checked) try { speechSynthesis.cancel(); } catch {} });
+
+  function voiceModePrompt() {
+    const p = cur, d = diffById(radio("difficulty")), mins = Number(radio("duration"));
+    const fo = FOCUS.find((x) => x.id === focusSel.value) || FOCUS[0];
+    const spont = p.found.mode === "spont";
+    return [
+      "我们来做一个英文 coffee chat 角色扮演，我在墨尔本找工作，想练习说话更自然、少点目的性。这是语音对话，请像真人一样说话。",
+      "",
+      "【你扮演的人】",
+      p.en + " Full name: " + fullName(p) + ".",
+      profileText(p),
+      "Mood today: " + d.en,
+      "Setting: " + (spont ? p.found.setting : "A café in Melbourne, a coffee chat arranged in advance, about " + mins + " minutes."),
+      "What I'm practising: " + fo.en,
+      "",
+      "【规则】",
+      "1. Speak natural, spoken Australian-workplace English, usually 1–3 short sentences, like a real person on a voice call. No lists, no stage directions, no emojis.",
+      "2. React to small things (jokes, nervousness, long pauses, me rambling). Let me lead; answer what I ask, sometimes ask back.",
+      "3. Warm up when I listen, react and share a bit of myself; cool down (shorter answers, wrapping up) if I sound transactional, fire questions like an interview, or ask for a job/referral too early.",
+      "4. Never break character and never coach me during the chat.",
+      "5. " + (spont ? "I'll walk up to you and start talking." : "You start by greeting me."),
+      "6. 当我说 \"END\" 时结束角色扮演，用简体中文点评：总分 1–10；聊天感/目的性单独打分；关键瞬间（你的投入度什么时候升或降、为什么）；我哪些句子听起来目的性强，给出更自然的英文说法；英文发音或表达里不自然的地方；有没有要到下一步；下次最该改的 3 条。"
+    ].join("\n");
+  }
+  $("btn-voice-copy").addEventListener("click", () => {
+    const text = voiceModePrompt(), ta = $("voice-prompt"), msg = $("voice-copy-msg");
+    ta.value = text; ta.hidden = false;
+    const fallback = () => { ta.focus(); ta.select(); msg.textContent = "自动复制不可用，已全选下面的文字，请手动复制。"; };
+    try { navigator.clipboard.writeText(text).then(() => { msg.textContent = "已复制。去 Claude App 新建对话粘贴，再点语音按钮。"; }, fallback); } catch { fallback(); }
+  });
+
+  // ---------- Microphone: speech recognition in the browser ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const mic = { rec: null, on: false, base: "", wantSend: false, silence: null };
+  function setMicUI() { const b = $("btn-mic"); b.classList.toggle("live", mic.on); b.textContent = mic.on ? "⏹ 说完了，按一下发送" : "🎤 按一下开始说"; }
+  function startMic() {
+    if (!SR) { notice("这个浏览器不支持语音识别。iPhone 请用 Safari 打开，或者用键盘上的麦克风键。"); return; }
+    if (mic.on || state.busy || state.phase !== "chat") return;
+    try { speechSynthesis.cancel(); } catch {}
+    $("input").readOnly = false;
+    const r = new SR(); mic.rec = r;
+    r.lang = store.get("cc.ai.lang") || "en-AU"; r.continuous = true; r.interimResults = true;
+    mic.base = $("input").value.trim(); mic.wantSend = false;
+    r.onresult = (ev) => {
+      let fin = "", interim = "";
+      for (let i = 0; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t + " "; else interim += t; }
+      $("input").value = [mic.base, fin, interim].join(" ").replace(/\s+/g, " ").trim();
+      clearTimeout(mic.silence);
+      if ($("call-toggle").checked) mic.silence = setTimeout(() => stopMic(true), 1800);
+    };
+    r.onerror = (ev) => {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+        mic.on = false; setMicUI();
+        notice("没有麦克风权限。iPhone：设置 → App → Safari → 麦克风，选允许；并在 设置 → 通用 → 键盘 里打开「启用听写」。然后刷新页面。");
+      } else if (ev.error !== "no-speech" && ev.error !== "aborted") notice("语音识别出错（" + ev.error + "），再按一次试试。");
+    };
+    r.onend = () => {
+      clearTimeout(mic.silence);
+      if (mic.on && !mic.wantSend) { mic.on = false; startMic(); if (mic.on) return; } // iPhone stops by itself after a pause: keep listening
+      mic.on = false; setMicUI();
+      if (mic.wantSend && $("input").value.trim()) send();
+    };
+    try { r.start(); mic.on = true; setMicUI(); notice(""); } catch { mic.on = false; setMicUI(); }
+  }
+  function stopMic(sendAfter) {
+    if (!mic.on) return;
+    mic.wantSend = !!sendAfter;
+    try { mic.rec.stop(); } catch { mic.on = false; setMicUI(); if (sendAfter) send(); }
+  }
+  $("btn-mic").addEventListener("click", () => (mic.on ? stopMic(true) : startMic()));
+  $("call-toggle").checked = store.get("cc.call") === "on";
+  $("call-toggle").addEventListener("change", () => store.set("cc.call", $("call-toggle").checked ? "on" : "off"));
+  function listenAgainIfCallMode() {
+    if (!$("call-toggle").checked || state.phase !== "chat") return;
+    let speaking = false; try { speaking = speechSynthesis.speaking || speechSynthesis.pending; } catch {}
+    if (speaking && $("tts-toggle").checked) tts.after = () => setTimeout(startMic, 300);
+    else setTimeout(startMic, 300);
+  }
+
+  async function send(forced) {
+    const ta = $("input");
+    const text = (forced || ta.value).trim();
+    if (!text || state.busy) return;
+    const sample = await getSample();
+    if (!sample) { notice("还没设置 AI。请先在左边「⚙️ AI 设置」里填好 API key。"); return; }
+    if (!forced) ta.value = "";
+    notice("");
+    const lat = Math.round((Date.now() - state.lastThemAt) / 1000);
+    state.turns.push({ r: "me", t: text, lat });
+    const meNode = addMe(text);
+    state.busy = true; $("btn-send").disabled = true;
+    const m = $("msgs");
+    const typing = el("div", "msg them typing"); typing.append(document.createTextNode(state.persona.name + " "), el("span", "dots"));
+    m.appendChild(typing); m.scrollTop = m.scrollHeight;
+    state.ctrl = new AbortController();
+    try {
+      let r;
+      try { r = await sample.json(replyPrompt(), { cache: false, modelTier: "default", signal: state.ctrl.signal }); }
+      catch (e) { if (e && e.code === "invalid_json" && e.text) r = { speech: e.text.replace(/[{}"]/g, "").trim() }; else throw e; }
+      const prev = state.engagement;
+      const eng = Number.isFinite(Number(r.engagement)) ? Math.max(0, Math.min(100, Math.round(Number(r.engagement)))) : prev;
+      const turn = { r: "them", t: String(r.speech || "…").trim(), a: String(r.action || "").trim().replace(/^\(|\)$/g, ""), e: eng, n: String(r.reactionNote || "").trim(), u: String(r.userNote || "").trim() };
+      typing.remove();
+      state.engagement = eng; setMeter(eng, prev);
+      state.turns.push(turn);
+      await addThem(turn, true);
+      state.lastThemAt = Date.now();
+      listenAgainIfCallMode();
+    } catch (e) {
+      typing.remove(); meNode.remove();
+      state.turns.pop(); // let them resend
+      if (!forced) ta.value = text;
+      const msg = errText(e); if (msg) notice(msg);
+    } finally {
+      state.busy = false; $("btn-send").disabled = false; ta.focus();
+    }
+  }
+
+  const QUICK = [
+    ["Mm-hmm", "Mm-hmm."], ["(点头)", "(nods)"], ["(笑)", "(laughs)"], ["Oh, really?", "Oh, really?"],
+    ["Sorry, could you say that again?", "Sorry, could you say that again?"], ["(沉默几秒，在想)", "(stays quiet for a few seconds, thinking)"]
+  ];
+  QUICK.forEach(([label, val]) => { const b = el("button", null, label); b.type = "button"; b.addEventListener("click", () => send(val)); $("quick").appendChild(b); });
+  $("notes-toggle").checked = store.get("cc.notes") !== "off";
+  const applyNotes = () => { $("chat").classList.toggle("notes-off", !$("notes-toggle").checked); store.set("cc.notes", $("notes-toggle").checked ? "on" : "off"); };
+  $("notes-toggle").addEventListener("change", applyNotes); applyNotes();
+
+  function feedbackPrompt(rec) {
+    return [
+      "你是一位帮助在澳洲墨尔本求职的中文母语者练习英文 networking 的教练。下面是一次模拟 coffee chat 的完整记录（求职者 vs. 一位从业者）。请用简体中文给出具体、坦诚、可执行的点评。",
+      "",
+      "对方角色：" + rec.personaName + "，" + rec.personaTitle + "（" + rec.personaOrg + "），状态：" + rec.difficultyZh,
+      "认识方式：" + (rec.foundVia ? (rec.foundType === "online" ? "线上" : "线下") + " · " + rec.foundVia + "（" + rec.foundHow + "）" : "未记录"),
+      rec.profileText ? "对方的资料和私下状态（求职者只能看到 LinkedIn 那部分）：\n" + rec.profileText : "",
+      "点评时也看：求职者有没有利用对方资料里的具体信息（但不显得像在背资料）；如果是当场偶遇，开场是否自然；对方提到自己的烦恼时，求职者有没有接住或者主动提供帮助。",
+      "计划时长：" + rec.plannedMinutes + " 分钟，实际约 " + rec.minutes + " 分钟",
+      "求职者背景：" + (rec.background || "未填写"),
+      "这次练习重点：" + (rec.focusZh || "综合练习"),
+      "求职者这次想练：" + (rec.goal || "未填写"),
+      "求职者自己觉得说话目的性太强、像在索取信息，想练得更自然、更有'人味'，所以请特别留意：是否连珠炮式提问、是否接住对方分享的内容、是否有闲聊和自我分享、是否太早把话题拉回找工作。",
+      "",
+      "评分参考：开场与自我介绍是否清楚自然；问题是否具体、有研究、按重要性排序、会追问；是否倾听并回应对方的话（包括对方的小反应和语气）；回复长短和节奏是否自然；是否过早直接要工作或内推；英文是否自然得体；是否尊重时间并礼貌收尾、要到下一步（推荐其他人 / 保持联系）。只有一两轮的短对话要如实指出信息不足，分数相应偏低。",
+      "",
+      "对话记录（括号里是对方的动作；[engagement] 是对方当时的投入度 0-100；[replied after Ns] 是求职者的回复间隔和字数）：",
+      transcriptText(rec.turns, "求职者", rec.personaName, true),
+      "",
+      "只输出一个 JSON 对象，不要任何其他文字，结构如下：",
+      '{"score": 1到10的整数, "summary": "一两句总评", "opening": "对开场和自我介绍的点评", "goodQuestions": ["问得好的问题原文或概括，附一句为什么好"], "weakQuestions": [{"q": "原问题", "why": "问题在哪", "better": "更好的英文问法"}], "english": [{"original": "求职者原句", "better": "更地道的英文说法", "note": "简短中文说明"}], "closing": "对收尾的点评", "nextStepSecured": true或false, "humanTouch": {"score": 1到10的整数（越高越自然、越不功利）, "comment": "一两句：整体听起来像聊天还是像采访/索取", "rewrites": [{"original": "求职者听起来目的性强的原句", "softer": "更自然、有人味的英文说法", "note": "为什么这样更好"}]}, "moments": [{"quote": "那一刻求职者或对方说的原话（简短）", "shift": "对方投入度怎么变了，如 45→60", "why": "为什么会这样，下次怎么做（中文）"}], "tips": ["下次最该改的3条，每条具体可执行"]}',
+      "moments 挑 2-4 个对方投入度明显上升或下降、或者错过了对方暗示（比如对方看手机、敷衍回答、主动反问）的关键瞬间。",
+      "english 最多挑 5 句最值得改的；没有就给空数组。"
+    ].join("\n");
+  }
+
+  async function makeFeedback(rec) {
+    const sample = await getSample();
+    if (!sample) throw { code: "unavailable" };
+    const fb = await sample.json(feedbackPrompt(rec), { modelTier: "complex", cache: false });
+    if (!fb || typeof fb !== "object") throw { code: "invalid_json" };
+    fb.score = Math.max(1, Math.min(10, Math.round(Number(fb.score) || 0))) || null;
+    return fb;
+  }
+
+  function renderFeedback(container, fb) {
+    container.replaceChildren();
+    const wrap = el("div", "fb");
+    const sr = el("div", "score-row");
+    const sc = el("div", "score"); sc.append(String(fb.score ?? "—"), el("small", null, " / 10"));
+    const sum = el("div"); sum.style.minWidth = "0"; sum.style.flex = "1 1 240px";
+    sum.append(el("p", null, fb.summary || ""));
+    const chip = el("span", "chip " + (fb.nextStepSecured ? "ok" : "no"), fb.nextStepSecured ? "要到了下一步" : "还没要到下一步");
+    sum.append(chip);
+    sr.append(sc, sum); wrap.appendChild(sr);
+    const sec = (title, body) => { const s = el("section"); s.append(el("h3", null, title)); if (typeof body === "string") s.append(el("p", null, body)); else s.append(body); wrap.appendChild(s); };
+    const list = (arr) => { const ul = el("ul"); (arr || []).forEach((x) => ul.appendChild(el("li", null, typeof x === "string" ? x : JSON.stringify(x)))); return ul; };
+    if (fb.tips?.length) sec("下次最该改的", list(fb.tips));
+    if (fb.humanTouch && (fb.humanTouch.comment || fb.humanTouch.rewrites?.length)) {
+      const h = fb.humanTouch, box = el("div"); box.style.display = "grid"; box.style.gap = "8px";
+      const top = el("div", "row"); top.append(el("span", "chip ok", "聊天感 " + (h.score ?? "—") + " / 10"), el("span", null, h.comment || "")); box.appendChild(top);
+      (h.rewrites || []).forEach((w) => { const f = el("div", "fix"); f.append(el("span", "from", w.original || ""), el("span", "to", w.softer || ""), el("span", "why", w.note || "")); box.appendChild(f); });
+      sec("目的性 vs 聊天感", box);
+    }
+    if (fb.moments?.length) {
+      const box = el("div"); box.style.display = "grid"; box.style.gap = "8px";
+      fb.moments.forEach((w) => { const f = el("div", "fix"); f.append(el("span", "to", "“" + (w.quote || "") + "”"), el("span", "chip", w.shift || ""), el("span", "why", w.why || "")); f.querySelector(".chip").style.justifySelf = "start"; box.appendChild(f); });
+      sec("关键瞬间", box);
+    }
+    if (fb.opening) sec("开场", fb.opening);
+    if (fb.goodQuestions?.length) sec("问得好的", list(fb.goodQuestions));
+    if (fb.weakQuestions?.length) {
+      const box = el("div"); box.style.display = "grid"; box.style.gap = "8px";
+      fb.weakQuestions.forEach((w) => { const f = el("div", "fix"); f.append(el("span", "from", w.q || ""), el("span", "to", w.better || ""), el("span", "why", w.why || "")); box.appendChild(f); });
+      sec("可以问得更好的", box);
+    }
+    if (fb.english?.length) {
+      const box = el("div"); box.style.display = "grid"; box.style.gap = "8px";
+      fb.english.forEach((w) => { const f = el("div", "fix"); f.append(el("span", "from", w.original || ""), el("span", "to", w.better || ""), el("span", "why", w.note || "")); box.appendChild(f); });
+      sec("英文表达", box);
+    }
+    if (fb.closing) sec("收尾", fb.closing);
+    container.appendChild(wrap);
+  }
+
+  // ---------- Records (db) ----------
+  const rec = { db: null, uid: null, items: [], unsub: null, ready: false, selected: null };
+  // Records live in this device's localStorage; export/import for backup.
+  const LS_REC = "cc.records";
+  const byDate = (a) => a.slice().sort((x, y) => String(y.createdAt).localeCompare(String(x.createdAt)));
+  function loadRecs() { try { const a = JSON.parse(localStorage.getItem(LS_REC) || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } }
+  function writeRecs(a) { localStorage.setItem(LS_REC, JSON.stringify(a)); rec.items = byDate(a); renderHistory(); }
+  const localCol = {
+    async add(r) { const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); writeRecs([{ id, ...r }].concat(loadRecs())); return { id }; },
+    doc(id) { return {
+      async delete() { writeRecs(loadRecs().filter((x) => x.id !== id)); },
+      async update(o) { writeRecs(loadRecs().map((x) => x.id === id ? { ...x, ...o } : x)); }
+    }; }
+  };
+  async function initDb() { rec.db = localCol; rec.items = byDate(loadRecs()); rec.ready = true; renderHistory(); }
+  const col = () => localCol;
+
+  $("btn-export").addEventListener("click", () => {
+    const data = JSON.stringify(loadRecs(), null, 1);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    a.download = "coffee-chat-records-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    $("io-msg").textContent = "已导出 " + loadRecs().length + " 条记录。iPhone 上会存到「文件」App。";
+  });
+  $("import-file").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      const incoming = JSON.parse(await f.text());
+      if (!Array.isArray(incoming)) throw 0;
+      const cur = loadRecs(), ids = new Set(cur.map((x) => x.id));
+      const add = incoming.filter((x) => x && x.id && x.createdAt && !ids.has(x.id));
+      writeRecs(cur.concat(add));
+      $("io-msg").textContent = "导入了 " + add.length + " 条新记录。";
+    } catch { $("io-msg").textContent = "这个文件不是练习记录备份。"; }
+    e.target.value = "";
+  });
+
+  async function saveRecord(r) {
+    if (!rec.db) return null;
+    try { const ref = await col().add(r); return ref.id; } catch { return null; }
+  }
+
+  // ---------- Flow ----------
+  $("btn-start").addEventListener("click", async () => {
+    state.persona = cur;
+    state.diff = diffById(radio("difficulty"));
+    state.minutes = Number(radio("duration"));
+    state.focus = focusSel.value;
+    state.turns = []; notice("");
+    $("msgs").replaceChildren();
+    renderPersona();
+    const spont = cur.found.mode === "spont";
+    let open = spont ? pick(SPONT_OPENERS) : (cur.presetOpen && Math.random() < 0.5 ? cur.presetOpen : pick(OPENERS[state.diff.id] || OPENERS.friendly));
+    if (state.diff.id === "busy" && !spont) open += " Just a heads-up, I've got a hard stop in about " + state.minutes + " minutes.";
+    state.engagement = START_ENGAGEMENT[state.diff.id] ?? 50;
+    setMeter(state.engagement, null);
+    const first = { r: "them", t: open, a: (spont && cur.found.act) || OPEN_ACTION[state.diff.id] || "", e: state.engagement, n: "", u: "" };
+    state.turns.push(first);
+    addThem(first, false);
+    state.startedAt = Date.now(); state.lastThemAt = Date.now(); tick();
+    clearInterval(state.timer); state.timer = setInterval(tick, 1000);
+    setPhase("chat");
+    $("input").focus();
+    listenAgainIfCallMode();
+    getSample().then((s) => { if (!s) notice("还没设置 AI，对方不能回复。请先在左边「⚙️ AI 设置」里填好 API key。"); });
+  });
+
+  $("btn-send").addEventListener("click", () => send());
+  $("input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+
+  $("btn-end").addEventListener("click", async () => {
+    if (mic.on) { mic.wantSend = false; mic.on = false; try { mic.rec.abort(); } catch {} setMicUI(); }
+    tts.after = null; try { speechSynthesis.cancel(); } catch {}
+    if (state.busy) state.ctrl?.abort();
+    clearInterval(state.timer);
+    const mine = state.turns.filter((t) => t.r === "me").length;
+    setPhase("review");
+    $("btn-end").hidden = true;
+    const p = state.persona;
+    const r = {
+      createdAt: new Date(state.startedAt).toISOString(),
+      personaId: p.id, personaName: p.name, personaFull: fullName(p), personaTitle: p.title, personaOrg: p.org,
+      foundType: p.found.type, foundMode: p.found.mode, foundVia: p.found.via, foundHow: p.found.how,
+      profileText: profileText(p),
+      difficulty: state.diff.id, difficultyZh: state.diff.zh,
+      plannedMinutes: state.minutes, minutes: Math.max(1, Math.round((Date.now() - state.startedAt) / 60000)),
+      background: $("bg").value.trim(), goal: $("goal").value.trim(),
+      focus: state.focus, focusZh: (FOCUS.find((f) => f.id === state.focus) || FOCUS[0]).zh,
+      turns: state.turns.slice(), feedback: null, score: null
+    };
+    const m = $("msgs");
+    const fbBox = el("div", "panel"); fbBox.style.alignSelf = "stretch";
+    fbBox.append(el("p", "muted", mine ? "正在生成点评，大约需要 20–40 秒…" : "你还没说话，这次不生成点评。"));
+    m.appendChild(fbBox); m.scrollTop = m.scrollHeight;
+    if (mine) {
+      try { r.feedback = await makeFeedback(r); r.score = r.feedback.score; renderFeedback(fbBox, r.feedback); }
+      catch (e) { fbBox.replaceChildren(el("p", null, "点评没有生成成功。" + (errText(e) || "") + " 对话已保存，可以在「练习记录」里重新生成。")); }
+      const id = await saveRecord(r);
+      const savedNote = el("p", "hint", id ? "已保存到练习记录。" : "保存失败：设备存储可能满了，可以先导出备份再删掉旧记录。");
+      fbBox.appendChild(savedNote);
+      if (id) rec.selected = id;
+      m.scrollTop = m.scrollHeight;
+    }
+    setPhase("done");
+  });
+
+  $("btn-again").addEventListener("click", () => { setPhase("setup"); $("meter").hidden = true; state.turns = []; $("clock").textContent = "00:00"; $("clock").classList.remove("over"); notice(""); renderEmpty(); renderPersona(); });
+  $("btn-to-history").addEventListener("click", () => showTab("history"));
+
+  // ---------- Tabs ----------
+  function showTab(which) {
+    const h = which === "history";
+    $("tab-practice").setAttribute("aria-selected", String(!h));
+    $("tab-history").setAttribute("aria-selected", String(h));
+    $("view-practice").hidden = h; $("view-history").hidden = !h;
+    store.set("cc.tab", which);
+    if (h) renderHistory();
+  }
+  $("tab-practice").addEventListener("click", () => showTab("practice"));
+  $("tab-history").addEventListener("click", () => showTab("history"));
+
+  // ---------- History rendering ----------
+  function renderHistory() {
+    const items = rec.items;
+    const scored = items.filter((i) => typeof i.score === "number");
+    $("st-count").textContent = String(items.length);
+    const avg = (arr) => arr.length ? (arr.reduce((a, b) => a + b.score, 0) / arr.length).toFixed(1) : "—";
+    $("st-avg").textContent = avg(scored);
+    $("st-recent").textContent = avg(scored.slice(0, 3));
+    $("st-min").textContent = items.reduce((a, b) => a + (b.minutes || 0), 0) + " 分钟";
+    renderTrend(scored.slice().reverse());
+
+    const list = $("hist-list"); list.replaceChildren();
+    if (!rec.ready) { list.appendChild(el("p", "muted", "正在读取记录…")); }
+    else if (!rec.db) { list.appendChild(el("p", "muted", "这个浏览器存不了记录（可能是无痕模式）。")); }
+    else if (!items.length) { list.appendChild(el("p", "muted", "还没有记录。去「练习」完成一次 coffee chat，结束后会自动存到这里。")); }
+    items.forEach((it) => {
+      const b = el("button", "hitem"); b.type = "button";
+      b.setAttribute("aria-current", String(it.id === rec.selected));
+      b.append(el("span", "t", it.personaName + " · " + it.personaTitle),
+        el("span", "s", typeof it.score === "number" ? String(it.score) : "—"),
+        el("span", "d", fmtDate(it.createdAt) + " · " + (it.difficultyZh || "") + " · " + (it.minutes || "?") + " 分钟"));
+      b.addEventListener("click", () => { rec.selected = it.id; renderHistory(); });
+      list.appendChild(b);
+    });
+    if (!rec.selected || !items.some((i) => i.id === rec.selected)) rec.selected = items[0]?.id || null;
+    renderDetail(items.find((i) => i.id === rec.selected));
+  }
+
+  function renderTrend(arr) {
+    const svg = $("trend-svg"); svg.replaceChildren();
+    const NS = "http://www.w3.org/2000/svg";
+    const mk = (t, a) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); svg.appendChild(n); return n; };
+    const W = 600, H = 120, pl = 24, pr = 10, pt = 10, pb = 14;
+    const y = (s) => pt + (10 - s) / 9 * (H - pt - pb);
+    [1, 5, 10].forEach((s) => {
+      mk("line", { x1: pl, x2: W - pr, y1: y(s), y2: y(s), stroke: "var(--line)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" });
+      const t = mk("text", { x: 0, y: y(s) + 4, fill: "var(--muted)", "font-size": 10, "font-family": "IBM Plex Mono, monospace" }); t.textContent = String(s);
+    });
+    if (!arr.length) { const t = mk("text", { x: W / 2, y: H / 2, fill: "var(--muted)", "font-size": 12, "text-anchor": "middle" }); t.textContent = "完成练习后这里会显示分数变化"; return; }
+    const x = (i) => arr.length === 1 ? (pl + W - pr) / 2 : pl + i * (W - pl - pr) / (arr.length - 1);
+    const pts = arr.map((r, i) => x(i) + "," + y(r.score)).join(" ");
+    if (arr.length > 1) {
+      mk("polygon", { points: x(0) + "," + y(1) + " " + pts + " " + x(arr.length - 1) + "," + y(1), fill: "var(--accent-soft)", opacity: 0.6 });
+      mk("polyline", { points: pts, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "vector-effect": "non-scaling-stroke" });
+    }
+    arr.forEach((r, i) => mk("circle", { cx: x(i), cy: y(r.score), r: i === arr.length - 1 ? 4 : 2.5, fill: "var(--accent)" }));
+  }
+
+  function renderDetail(it) {
+    const d = $("hist-detail"); d.replaceChildren();
+    if (!it) { d.append(el("h2", null, "练习详情"), el("p", "muted", "选一条记录，查看完整对话和点评。")); return; }
+    const head = el("div", "row"); head.style.justifyContent = "space-between";
+    const ht = el("div"); ht.append(el("h2", null, it.personaName + " · " + it.personaTitle), el("p", "muted", fmtDate(it.createdAt) + " · " + (it.difficultyZh || "") + " · 计划 " + it.plannedMinutes + " 分钟，实际 " + it.minutes + " 分钟"));
+    const del = el("button", "btn danger", "删除"); del.type = "button";
+    head.append(ht, del); d.appendChild(head);
+    const confirmBox = el("div", "confirm"); confirmBox.hidden = true;
+    const yes = el("button", "btn danger", "确认删除"), no = el("button", "btn", "取消");
+    confirmBox.append(el("span", null, "删除后无法恢复。"), yes, no); d.appendChild(confirmBox);
+    del.addEventListener("click", () => { confirmBox.hidden = false; });
+    no.addEventListener("click", () => { confirmBox.hidden = true; });
+    yes.addEventListener("click", async () => { yes.disabled = true; try { await col().doc(it.id).delete(); rec.selected = null; } catch { yes.disabled = false; confirmBox.firstChild.textContent = "删除失败，请重试。"; } });
+    if (it.foundVia) d.appendChild(el("p", null, "认识方式：" + (it.foundType === "online" ? "线上" : "线下") + " · " + it.foundVia + (it.foundMode === "spont" ? "（当场偶遇）" : "")));
+    if (it.focusZh) d.appendChild(el("p", null, "练习重点：" + it.focusZh));
+    if (it.goal) d.appendChild(el("p", null, "这次想练：" + it.goal));
+
+    const fbBox = el("div");
+    if (it.feedback) renderFeedback(fbBox, it.feedback);
+    else {
+      const regen = el("button", "btn primary", "生成点评"); regen.type = "button";
+      const note = el("p", "muted", "这次练习还没有点评。");
+      fbBox.append(note, regen);
+      regen.addEventListener("click", async () => {
+        regen.disabled = true; note.textContent = "正在生成点评，大约需要 20–40 秒…";
+        try { const fb = await makeFeedback(it); await col().doc(it.id).update({ feedback: fb, score: fb.score }); }
+        catch (e) { regen.disabled = false; note.textContent = "没有生成成功。" + (errText(e) || ""); }
+      });
+    }
+    d.appendChild(fbBox);
+    const tr = el("details"); tr.append(el("summary", null, "完整对话（" + (it.turns?.length || 0) + " 句）"));
+    const box = el("div", "transcript");
+    (it.turns || []).forEach((t) => {
+      const p = el("p");
+      p.append(el("b", null, t.r === "me" ? "YOU" : (it.personaName || "THEM").toUpperCase()));
+      if (t.a) p.append(el("span", "act", "(" + t.a + ") "));
+      p.append(document.createTextNode(t.t));
+      if (t.r === "them" && t.e != null) p.append(el("span", "act", " · 投入度 " + t.e));
+      box.appendChild(p);
+      if (t.u || t.n) { const nb = el("div", "note"); if (t.u) { const s = el("span"); s.append(el("b", null, "你刚才"), document.createTextNode(t.u)); nb.appendChild(s); } if (t.n) { const s = el("span"); s.append(el("b", null, "对方"), document.createTextNode(t.n)); nb.appendChild(s); } box.appendChild(nb); }
+    });
+    tr.appendChild(box); d.appendChild(tr);
+  }
+
+  // ---------- AI settings ----------
+  function renderAiSettings() {
+    const c = aiCfg();
+    $("ai-provider").value = c.provider; $("ai-key").value = c.key; $("ai-model").value = c.model;
+    $("ai-lang").value = store.get("cc.ai.lang") || "en-AU";
+    $("ai-model").placeholder = "默认：" + AI_DEFAULTS[c.provider];
+    $("howto-gemini").hidden = c.provider !== "gemini"; $("howto-claude").hidden = c.provider !== "claude";
+    const st = $("ai-status"); st.textContent = c.key ? "已设置" : "未设置，先填这里"; st.className = "chip " + (c.key ? "ok" : "no");
+  }
+  $("ai-provider").addEventListener("change", () => { store.set("cc.ai.provider", $("ai-provider").value); store.set("cc.ai.model", ""); renderAiSettings(); });
+  $("ai-lang").addEventListener("change", () => store.set("cc.ai.lang", $("ai-lang").value));
+  $("ai-save").addEventListener("click", async () => {
+    store.set("cc.ai.provider", $("ai-provider").value);
+    store.set("cc.ai.key", $("ai-key").value.trim());
+    store.set("cc.ai.model", $("ai-model").value.trim());
+    store.set("cc.ai.lang", $("ai-lang").value);
+    renderAiSettings();
+    const msg = $("ai-msg"); msg.textContent = "测试中…";
+    try { const r = await aiClient.json('Reply with exactly this JSON: {"ok": true}', {}); msg.textContent = r && r.ok ? "✅ 连接成功，可以开始练习了" : "✅ 连上了"; }
+    catch (e) { msg.textContent = "❌ " + (errText(e) || "连接失败"); }
+  });
+  renderAiSettings();
+  if (!aiCfg().key) $("ai-settings").open = true;
+
+  // ---------- Boot ----------
+  setPhase("setup");
+  renderEmpty();
+  try { const saved = JSON.parse(store.get("cc.cur") || "null"); if (saved && saved.profile && saved.found) cur = saved; } catch {}
+  if (!cur) { randomTemperament(); cur = generatePerson(channelSel.value); saveCur(); }
+  personaSel.value = cur.gen ? "gen" : cur.id;
+  renderPersona();
+  renderHistory();
+  if (store.get("cc.tab") === "history") showTab("history");
+  initDb();
+})();
+</script>
+</body>
+</html>
