@@ -1057,6 +1057,8 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     try { const j = await res.json(); msg = (j.error && (j.error.message || j.error.type)) || ""; } catch {}
     let code = "upstream_error";
     if (res.status === 429) code = "rate_limited";
+    else if (/location is not supported|not available in your country|region/i.test(msg)) code = "region";
+    else if (res.status === 500 || res.status === 503 || res.status === 504 || /overloaded|unavailable/i.test(msg)) code = "overloaded";
     else if (res.status === 401 || res.status === 403 || /api.?key/i.test(msg)) code = "bad_key";
     else if (res.status === 404) code = "bad_model";
     else if (res.status === 402 || /credit|billing|balance/i.test(msg)) code = "billing";
@@ -1094,11 +1096,18 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
         if (cfg.provider === "claude") {
           return extractJSON(await callClaude(cfg, prompt + "\n\nReply with the JSON object only.", opts.signal, cfg.model || AI_DEFAULTS.claude, heavy ? "medium" : "low"));
         }
-        const models = cfg.model ? [cfg.model] : [AI_DEFAULTS.gemini, "gemini-2.5-flash"];
+        // Free models are often busy: retry once, then move on to the next model.
+        const models = cfg.model ? [cfg.model, cfg.model] : [AI_DEFAULTS.gemini, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lite-latest"];
+        const retryable = ["bad_model", "overloaded", "empty_completion", "invalid_json"];
         let last;
         for (const m of models) {
           try { return extractJSON(await callGemini(cfg, prompt, opts.signal, m)); }
-          catch (e) { last = e; if (e.code !== "bad_model") throw e; }
+          catch (e) {
+            last = e;
+            if (e && e.name === "AbortError") throw e;
+            if (!retryable.includes(e && e.code)) throw e;
+            if (e.code === "overloaded") await new Promise((r) => setTimeout(r, 1200));
+          }
         }
         throw last;
       } catch (e) {
@@ -1118,9 +1127,11 @@ details > div { margin-top: 8px; display: grid; gap: 8px; font-size: 0.9rem; }
     if (code === "billing") return "AI 账户余额不足，需要去充值。";
     if (code === "rate_limited") return "这一分钟的免费额度用完了，等一分钟再发。";
     if (code === "network") return "连不上 AI 服务，检查一下网络。";
+    if (code === "overloaded") return "Google 的免费模型现在太忙了，过几秒再试一次。";
+    if (code === "region") return "你现在所在的国家或地区不能用 Gemini 免费 API（" + (e.message || "") + "）。";
     if (code === "refused") return "AI 没有回答这一句，换个说法再试试。";
     if (code === "cancelled") return "";
-    return "AI 暂时没有回应（" + (code || "unknown") + "），请再试一次。";
+    return "AI 暂时没有回应（" + (code || "unknown") + (e && e.status ? " · " + e.status : "") + "）" + (e && e.message ? "：" + String(e.message).slice(0, 160) : "") + "。请再试一次，还不行就把这句话截图发给我。";
   }
 
   function transcriptText(turns, meLabel, themLabel, withMeta) {
